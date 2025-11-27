@@ -1,8 +1,8 @@
-# Imagely - NLP Image Processor
+# Imagely - Transform Images Instantly
 
 A Next.js application that converts natural language image processing requests into structured JSON specifications. Simply describe what you want in plain English, and the system will parse your request and process your images accordingly.
 
-![Imagely Hero](public/hero-image.png)
+<img width="1326" height="828" alt="hero" src="https://github.com/user-attachments/assets/9c24597f-c99b-4d3c-8501-731bbf44c72e" />
 
 ## Features
 
