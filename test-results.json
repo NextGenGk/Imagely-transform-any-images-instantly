@@ -1,0 +1,218 @@
+[
+  {
+    "feature": "Resize",
+    "test": "Resize to pixels",
+    "query": "resize to 1280x720",
+    "passed": false,
+    "expected": "1280x720 pixels",
+    "actual": null,
+    "error": "GEMINI_API_KEY is required"
+  },
+  {
+    "feature": "Resize",
+    "test": "Resize to millimeters",
+    "query": "resize to 35mm x 45mm",
+    "passed": false,
+    "expected": "35mm x 45mm",
+    "actual": null,
+    "error": "GEMINI_API_KEY is required"
+  },
+  {
+    "feature": "Format",
+    "test": "Convert to PNG",
+    "query": "convert to PNG",
+    "passed": false,
+    "expected": "PNG format",
+    "actual": null,
+    "error": "GEMINI_API_KEY is required"
+  },
+  {
+    "feature": "Format",
+    "test": "Convert to JPG",
+    "query": "save as JPG",
+    "passed": false,
+    "expected": "JPG format",
+    "actual": null,
+    "error": "GEMINI_API_KEY is required"
+  },
+  {
+    "feature": "Format",
+    "test": "Convert to WebP",
+    "query": "convert to WebP",
+    "passed": false,
+    "expected": "WebP format",
+    "actual": null,
+    "error": "GEMINI_API_KEY is required"
+  },
+  {
+    "feature": "Compression",
+    "test": "Compress to 10KB",
+    "query": "compress this image into 10kb",
+    "passed": false,
+    "expected": "~0.01MB with JPG format",
+    "actual": null,
+    "error": "GEMINI_API_KEY is required"
+  },
+  {
+    "feature": "Compression",
+    "test": "Compress to 500KB",
+    "query": "compress to 500KB",
+    "passed": false,
+    "expected": "~0.5MB",
+    "actual": null,
+    "error": "GEMINI_API_KEY is required"
+  },
+  {
+    "feature": "Rotation",
+    "test": "Rotate 90 degrees",
+    "query": "rotate 90 degrees",
+    "passed": false,
+    "expected": "90 degrees",
+    "actual": null,
+    "error": "GEMINI_API_KEY is required"
+  },
+  {
+    "feature": "Rotation",
+    "test": "Rotate 45 degrees",
+    "query": "rotate image 45 degrees",
+    "passed": false,
+    "expected": "45 degrees",
+    "actual": null,
+    "error": "GEMINI_API_KEY is required"
+  },
+  {
+    "feature": "Flip",
+    "test": "Flip horizontally",
+    "query": "flip horizontally",
+    "passed": false,
+    "expected": "horizontal flip",
+    "actual": null,
+    "error": "GEMINI_API_KEY is required"
+  },
+  {
+    "feature": "Flip",
+    "test": "Flip vertically",
+    "query": "flip vertical",
+    "passed": false,
+    "expected": "vertical flip",
+    "actual": null,
+    "error": "GEMINI_API_KEY is required"
+  },
+  {
+    "feature": "Grayscale",
+    "test": "Make grayscale",
+    "query": "make it grayscale",
+    "passed": false,
+    "expected": "grayscale enabled",
+    "actual": null,
+    "error": "GEMINI_API_KEY is required"
+  },
+  {
+    "feature": "Grayscale",
+    "test": "Black and white",
+    "query": "convert to black and white",
+    "passed": false,
+    "expected": "grayscale enabled",
+    "actual": null,
+    "error": "GEMINI_API_KEY is required"
+  },
+  {
+    "feature": "Blur",
+    "test": "Add blur",
+    "query": "add blur",
+    "passed": false,
+    "expected": "blur > 0",
+    "actual": null,
+    "error": "GEMINI_API_KEY is required"
+  },
+  {
+    "feature": "Sharpen",
+    "test": "Sharpen image",
+    "query": "sharpen the image",
+    "passed": false,
+    "expected": "sharpen > 0",
+    "actual": null,
+    "error": "GEMINI_API_KEY is required"
+  },
+  {
+    "feature": "Contrast",
+    "test": "Increase contrast",
+    "query": "increase contrast",
+    "passed": false,
+    "expected": "contrast > 0",
+    "actual": null,
+    "error": "GEMINI_API_KEY is required"
+  },
+  {
+    "feature": "Contrast",
+    "test": "Decrease contrast",
+    "query": "decrease contrast",
+    "passed": false,
+    "expected": "contrast < 0",
+    "actual": null,
+    "error": "GEMINI_API_KEY is required"
+  },
+  {
+    "feature": "DPI",
+    "test": "Set 300 DPI",
+    "query": "set resolution to 300 DPI",
+    "passed": false,
+    "expected": "300 DPI",
+    "actual": null,
+    "error": "GEMINI_API_KEY is required"
+  },
+  {
+    "feature": "Passport",
+    "test": "Standard passport",
+    "query": "convert to passport photo",
+    "passed": false,
+    "expected": "35x45mm, 300 DPI",
+    "actual": null,
+    "error": "GEMINI_API_KEY is required"
+  },
+  {
+    "feature": "Passport",
+    "test": "US passport",
+    "query": "US passport photo",
+    "passed": false,
+    "expected": "51x51mm (2x2 inch)",
+    "actual": null,
+    "error": "GEMINI_API_KEY is required"
+  },
+  {
+    "feature": "Combined",
+    "test": "Resize and rotate",
+    "query": "resize to 800x600 and rotate 90 degrees",
+    "passed": false,
+    "expected": "800x600 + 90° rotation",
+    "actual": null,
+    "error": "GEMINI_API_KEY is required"
+  },
+  {
+    "feature": "Combined",
+    "test": "Flip and grayscale",
+    "query": "flip horizontally and make it grayscale",
+    "passed": false,
+    "expected": "horizontal flip + grayscale",
+    "actual": null,
+    "error": "GEMINI_API_KEY is required"
+  },
+  {
+    "feature": "Background",
+    "test": "White background",
+    "query": "white background",
+    "passed": false,
+    "expected": "white background",
+    "actual": null,
+    "error": "GEMINI_API_KEY is required"
+  },
+  {
+    "feature": "Background",
+    "test": "Blue background",
+    "query": "blue background",
+    "passed": false,
+    "expected": "blue background",
+    "actual": null,
+    "error": "GEMINI_API_KEY is required"
+  }
+]
