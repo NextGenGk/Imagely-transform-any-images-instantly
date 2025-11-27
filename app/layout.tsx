@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   title: "Imagely",
   description: "Convert natural language to image processing specifications",
   icons: {
-    icon: "/favicon.ico",
+    icon: "/favicon-black.ico",
   },
 };
 
