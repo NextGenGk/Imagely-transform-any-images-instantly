@@ -274,4 +274,120 @@ export class DatabaseService {
       throw new Error('Database health check failed: Unknown error');
     }
   }
+
+  /**
+   * Get user by Clerk ID
+   */
+  async getUserByClerkId(clerkId: string) {
+    return await prisma.user.findUnique({
+      where: { clerkId },
+      include: { subscription: true },
+    });
+  }
+
+  /**
+   * Get user by internal ID
+   */
+  async getUserById(userId: string) {
+    return await prisma.user.findUnique({
+      where: { id: userId },
+    });
+  }
+
+  /**
+   * Update user subscription details
+   */
+  async updateUserSubscription(
+    clerkId: string,
+    data: {
+      isTrialActive?: boolean;
+      trialEndsAt?: Date;
+      subscriptionStatus?: string;
+      razorpayCustomerId?: string;
+      razorpaySubscriptionId?: string;
+    }
+  ) {
+    return await prisma.user.update({
+      where: { clerkId },
+      data,
+    });
+  }
+
+  /**
+   * Get user subscription
+   */
+  async getUserSubscription(userId: string) {
+    return await prisma.subscription.findUnique({
+      where: { userId },
+    });
+  }
+
+  /**
+   * Create or update subscription
+   */
+  async createOrUpdateSubscription(data: {
+    userId: string;
+    planId: string;
+    status: string;
+    razorpaySubscriptionId: string;
+    razorpayPlanId: string;
+    currentPeriodStart: Date;
+    currentPeriodEnd: Date;
+  }) {
+    return await prisma.subscription.upsert({
+      where: { userId: data.userId },
+      update: {
+        planId: data.planId,
+        status: data.status,
+        razorpaySubscriptionId: data.razorpaySubscriptionId,
+        razorpayPlanId: data.razorpayPlanId,
+        currentPeriodStart: data.currentPeriodStart,
+        currentPeriodEnd: data.currentPeriodEnd,
+      },
+      create: data,
+    });
+  }
+
+  /**
+   * Get subscription by Razorpay ID
+   */
+  async getSubscriptionByRazorpayId(razorpaySubscriptionId: string) {
+    return await prisma.subscription.findUnique({
+      where: { razorpaySubscriptionId },
+    });
+  }
+
+  /**
+   * Update subscription status
+   */
+  async updateSubscriptionStatus(
+    subscriptionId: string,
+    status: string,
+    cancelAtPeriodEnd: boolean
+  ) {
+    return await prisma.subscription.update({
+      where: { id: subscriptionId },
+      data: {
+        status,
+        cancelAtPeriodEnd,
+      },
+    });
+  }
+
+  /**
+   * Update subscription period
+   */
+  async updateSubscriptionPeriod(
+    subscriptionId: string,
+    currentPeriodStart: Date,
+    currentPeriodEnd: Date
+  ) {
+    return await prisma.subscription.update({
+      where: { id: subscriptionId },
+      data: {
+        currentPeriodStart,
+        currentPeriodEnd,
+      },
+    });
+  }
 }

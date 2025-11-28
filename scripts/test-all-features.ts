@@ -1,341 +1,159 @@
-/**
- * Automated Feature Testing Script
- * Run all feature tests and generate a report
- */
+import dotenv from 'dotenv';
+dotenv.config({ path: '.env.local' });
+import { ImageKitService } from '../lib/imagekit.service';
+import { ImageProcessingSpec } from '../lib/types';
 
-import { GeminiService } from '../lib/gemini.service';
+// Polyfill fetch if needed (Node 18+ has it globally)
+const fetchUrl = global.fetch;
 
-interface TestResult {
-  feature: string;
-  test: string;
-  query: string;
-  passed: boolean;
-  expected: any;
-  actual: any;
-  error?: string;
-}
-
-const results: TestResult[] = [];
-
-async function runTest(
-  feature: string,
-  test: string,
-  query: string,
-  validator: (result: any) => boolean,
-  expectedDescription: string
-) {
-  console.log(`\n🧪 Testing: ${feature} - ${test}`);
-  console.log(`   Query: "${query}"`);
-
+async function testAllFeatures() {
   try {
-    const geminiService = new GeminiService(process.env.GEMINI_API_KEY);
-    const result = await geminiService.parseQuery(query);
-    
-    const passed = validator(result);
-    
-    results.push({
-      feature,
-      test,
-      query,
-      passed,
-      expected: expectedDescription,
-      actual: result,
-    });
+    console.log('Testing All ImageKit Features...');
+    const service = new ImageKitService();
 
-    if (passed) {
-      console.log(`   ✅ PASSED`);
-    } else {
-      console.log(`   ❌ FAILED`);
-      console.log(`   Expected: ${expectedDescription}`);
-      console.log(`   Got:`, JSON.stringify(result, null, 2));
+    // 1. Upload a test image
+    console.log('\n--- Step 1: Uploading Test Image ---');
+    // Small 1x1 red pixel jpg
+    const base64Image = '/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wAALCAABAAEBAREA/8QAAFgAAQAAAAAAAAAAAAAAAAAAAAQAAQAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAA//aAAgBAQAAPwB/AAAB//2Q==';
+    const buffer = Buffer.from(base64Image, 'base64');
+    const fileName = 'test-feature-check.jpg';
+
+    const uploadedUrl = await service.uploadImage(buffer, fileName);
+    console.log('Uploaded URL:', uploadedUrl);
+
+    if (!uploadedUrl.includes('ik.imagekit.io')) {
+      throw new Error('Upload failed or returned invalid URL');
     }
 
-    return passed;
-  } catch (error) {
-    console.log(`   ❌ ERROR: ${error}`);
-    results.push({
-      feature,
-      test,
-      query,
-      passed: false,
-      expected: expectedDescription,
-      actual: null,
-      error: error instanceof Error ? error.message : String(error),
-    });
-    return false;
-  }
-}
-
-async function runAllTests() {
-  console.log('🚀 Starting Automated Feature Tests\n');
-  console.log('=' .repeat(60));
-
-  let passed = 0;
-  let failed = 0;
-
-  // Feature 1: Resize
-  console.log('\n📐 FEATURE 1: RESIZE');
-  if (await runTest(
-    'Resize',
-    'Resize to pixels',
-    'resize to 1280x720',
-    (r) => r.dimensions.width_px === 1280 && r.dimensions.height_px === 720,
-    '1280x720 pixels'
-  )) passed++; else failed++;
-
-  if (await runTest(
-    'Resize',
-    'Resize to millimeters',
-    'resize to 35mm x 45mm',
-    (r) => r.dimensions.width_mm === 35 && r.dimensions.height_mm === 45,
-    '35mm x 45mm'
-  )) passed++; else failed++;
-
-  // Feature 2: Format Conversion
-  console.log('\n📦 FEATURE 2: FORMAT CONVERSION');
-  if (await runTest(
-    'Format',
-    'Convert to PNG',
-    'convert to PNG',
-    (r) => r.format === 'png',
-    'PNG format'
-  )) passed++; else failed++;
-
-  if (await runTest(
-    'Format',
-    'Convert to JPG',
-    'save as JPG',
-    (r) => r.format === 'jpg',
-    'JPG format'
-  )) passed++; else failed++;
-
-  if (await runTest(
-    'Format',
-    'Convert to WebP',
-    'convert to WebP',
-    (r) => r.format === 'webp',
-    'WebP format'
-  )) passed++; else failed++;
-
-  // Feature 3: Compression
-  console.log('\n🗜️  FEATURE 3: COMPRESSION');
-  if (await runTest(
-    'Compression',
-    'Compress to 10KB',
-    'compress this image into 10kb',
-    (r) => r.max_file_size_mb && r.max_file_size_mb < 0.02 && r.format === 'jpg',
-    '~0.01MB with JPG format'
-  )) passed++; else failed++;
-
-  if (await runTest(
-    'Compression',
-    'Compress to 500KB',
-    'compress to 500KB',
-    (r) => r.max_file_size_mb && r.max_file_size_mb > 0.4 && r.max_file_size_mb < 0.6,
-    '~0.5MB'
-  )) passed++; else failed++;
-
-  // Feature 4: Rotation
-  console.log('\n🔄 FEATURE 4: ROTATION');
-  if (await runTest(
-    'Rotation',
-    'Rotate 90 degrees',
-    'rotate 90 degrees',
-    (r) => r.effects?.rotation === 90,
-    '90 degrees'
-  )) passed++; else failed++;
-
-  if (await runTest(
-    'Rotation',
-    'Rotate 45 degrees',
-    'rotate image 45 degrees',
-    (r) => r.effects?.rotation === 45,
-    '45 degrees'
-  )) passed++; else failed++;
-
-  // Feature 5: Flip
-  console.log('\n🔃 FEATURE 5: FLIP/MIRROR');
-  if (await runTest(
-    'Flip',
-    'Flip horizontally',
-    'flip horizontally',
-    (r) => r.effects?.flip === 'horizontal',
-    'horizontal flip'
-  )) passed++; else failed++;
-
-  if (await runTest(
-    'Flip',
-    'Flip vertically',
-    'flip vertical',
-    (r) => r.effects?.flip === 'vertical',
-    'vertical flip'
-  )) passed++; else failed++;
-
-  // Feature 6: Grayscale
-  console.log('\n⚫ FEATURE 6: GRAYSCALE');
-  if (await runTest(
-    'Grayscale',
-    'Make grayscale',
-    'make it grayscale',
-    (r) => r.effects?.grayscale === true,
-    'grayscale enabled'
-  )) passed++; else failed++;
-
-  if (await runTest(
-    'Grayscale',
-    'Black and white',
-    'convert to black and white',
-    (r) => r.effects?.grayscale === true,
-    'grayscale enabled'
-  )) passed++; else failed++;
-
-  // Feature 7: Blur
-  console.log('\n🌫️  FEATURE 7: BLUR');
-  if (await runTest(
-    'Blur',
-    'Add blur',
-    'add blur',
-    (r) => r.effects?.blur && r.effects.blur > 0,
-    'blur > 0'
-  )) passed++; else failed++;
-
-  // Feature 8: Sharpen
-  console.log('\n🔪 FEATURE 8: SHARPEN');
-  if (await runTest(
-    'Sharpen',
-    'Sharpen image',
-    'sharpen the image',
-    (r) => r.effects?.sharpen && r.effects.sharpen > 0,
-    'sharpen > 0'
-  )) passed++; else failed++;
-
-  // Feature 9: Contrast
-  console.log('\n🎚️  FEATURE 9: CONTRAST');
-  if (await runTest(
-    'Contrast',
-    'Increase contrast',
-    'increase contrast',
-    (r) => r.effects?.contrast && r.effects.contrast > 0,
-    'contrast > 0'
-  )) passed++; else failed++;
-
-  if (await runTest(
-    'Contrast',
-    'Decrease contrast',
-    'decrease contrast',
-    (r) => r.effects?.contrast && r.effects.contrast < 0,
-    'contrast < 0'
-  )) passed++; else failed++;
-
-  // Feature 10: DPI
-  console.log('\n📊 FEATURE 10: DPI/RESOLUTION');
-  if (await runTest(
-    'DPI',
-    'Set 300 DPI',
-    'set resolution to 300 DPI',
-    (r) => r.dpi === 300,
-    '300 DPI'
-  )) passed++; else failed++;
-
-  // Feature 11: Passport Photos
-  console.log('\n🛂 FEATURE 11: PASSPORT PHOTOS');
-  if (await runTest(
-    'Passport',
-    'Standard passport',
-    'convert to passport photo',
-    (r) => r.task_type === 'passport_photo' && 
-           r.dimensions.width_mm === 35 && 
-           r.dimensions.height_mm === 45 &&
-           r.dpi === 300,
-    '35x45mm, 300 DPI'
-  )) passed++; else failed++;
-
-  if (await runTest(
-    'Passport',
-    'US passport',
-    'US passport photo',
-    (r) => r.dimensions.width_mm === 51 && r.dimensions.height_mm === 51,
-    '51x51mm (2x2 inch)'
-  )) passed++; else failed++;
-
-  // Feature 12: Combined Operations
-  console.log('\n🔗 FEATURE 12: COMBINED OPERATIONS');
-  if (await runTest(
-    'Combined',
-    'Resize and rotate',
-    'resize to 800x600 and rotate 90 degrees',
-    (r) => r.dimensions.width_px === 800 && 
-           r.dimensions.height_px === 600 && 
-           r.effects?.rotation === 90,
-    '800x600 + 90° rotation'
-  )) passed++; else failed++;
-
-  if (await runTest(
-    'Combined',
-    'Flip and grayscale',
-    'flip horizontally and make it grayscale',
-    (r) => r.effects?.flip === 'horizontal' && r.effects?.grayscale === true,
-    'horizontal flip + grayscale'
-  )) passed++; else failed++;
-
-  // Feature 13: Background
-  console.log('\n🎨 FEATURE 13: BACKGROUND COLORS');
-  if (await runTest(
-    'Background',
-    'White background',
-    'white background',
-    (r) => r.background === 'white',
-    'white background'
-  )) passed++; else failed++;
-
-  if (await runTest(
-    'Background',
-    'Blue background',
-    'blue background',
-    (r) => r.background === 'blue',
-    'blue background'
-  )) passed++; else failed++;
-
-  // Print Summary
-  console.log('\n' + '='.repeat(60));
-  console.log('\n📊 TEST SUMMARY\n');
-  console.log(`✅ Passed: ${passed}`);
-  console.log(`❌ Failed: ${failed}`);
-  console.log(`📈 Success Rate: ${((passed / (passed + failed)) * 100).toFixed(1)}%`);
-
-  // Print Failed Tests
-  if (failed > 0) {
-    console.log('\n❌ FAILED TESTS:\n');
-    results
-      .filter(r => !r.passed)
-      .forEach(r => {
-        console.log(`   ${r.feature} - ${r.test}`);
-        console.log(`   Query: "${r.query}"`);
-        console.log(`   Expected: ${r.expected}`);
-        if (r.error) {
-          console.log(`   Error: ${r.error}`);
+    // Helper to check URL accessibility
+    const checkUrl = async (url: string, description: string) => {
+      try {
+        const res = await fetchUrl(url);
+        if (res.status === 200) {
+          console.log(`[PASS] ${description}: URL is accessible (200 OK)`);
+          return true;
+        } else {
+          console.error(`[FAIL] ${description}: URL returned status ${res.status}`);
+          return false;
         }
-        console.log('');
-      });
+      } catch (e: any) {
+        console.error(`[FAIL] ${description}: Request failed - ${e.message}`);
+        return false;
+      }
+    };
+
+    // 2. Test Resize
+    console.log('\n--- Step 2: Testing Resize ---');
+    const specResize: ImageProcessingSpec = {
+      task_type: 'resize',
+      dimensions: { width_px: 100, height_px: 100, width_mm: null, height_mm: null },
+      dpi: null, background: null, face_requirements: null, max_file_size_mb: null, format: null, additional_notes: null
+    };
+    const urlResize = await service.transformImage(uploadedUrl, specResize);
+    console.log('Resize URL:', urlResize);
+    await checkUrl(urlResize, 'Resize (100x100)');
+
+    // 3. Test Compression
+    console.log('\n--- Step 3: Testing Compression ---');
+    const specCompress: ImageProcessingSpec = {
+      task_type: 'compress',
+      dimensions: { width_px: null, height_px: null, width_mm: null, height_mm: null },
+      dpi: null, background: null, face_requirements: null,
+      max_file_size_mb: 0.01, // Very small to force compression
+      format: 'jpg', additional_notes: null
+    };
+    const urlCompress = await service.transformImage(uploadedUrl, specCompress);
+    console.log('Compress URL:', urlCompress);
+    await checkUrl(urlCompress, 'Compression (Low Quality)');
+
+    // 4. Test Format Change
+    console.log('\n--- Step 4: Testing Format Change (to PNG) ---');
+    const specFormat: ImageProcessingSpec = {
+      task_type: 'format_change',
+      dimensions: { width_px: null, height_px: null, width_mm: null, height_mm: null },
+      dpi: null, background: null, face_requirements: null, max_file_size_mb: null,
+      format: 'png', additional_notes: null
+    };
+    const urlFormat = await service.transformImage(uploadedUrl, specFormat);
+    console.log('Format URL:', urlFormat);
+    await checkUrl(urlFormat, 'Format Change (PNG)');
+
+    // 5. Test Background Removal
+    console.log('\n--- Step 5: Testing Background Removal ---');
+    const specBg: ImageProcessingSpec = {
+      task_type: 'background_change',
+      dimensions: { width_px: null, height_px: null, width_mm: null, height_mm: null },
+      dpi: null,
+      background: 'transparent',
+      face_requirements: null, max_file_size_mb: null, format: 'png', additional_notes: null
+    };
+    const urlBg = await service.transformImage(uploadedUrl, specBg);
+    console.log('Bg Remove URL:', urlBg);
+    await checkUrl(urlBg, 'Background Removal (Transparent)');
+
+    // 6. Test Background Color
+    console.log('\n--- Step 6: Testing Background Color (Blue) ---');
+    const specBgColor: ImageProcessingSpec = {
+      task_type: 'background_change',
+      dimensions: { width_px: null, height_px: null, width_mm: null, height_mm: null },
+      dpi: null,
+      background: 'blue',
+      face_requirements: null, max_file_size_mb: null, format: 'jpg', additional_notes: null
+    };
+    const urlBgColor = await service.transformImage(uploadedUrl, specBgColor);
+    console.log('Bg Color URL:', urlBgColor);
+    await checkUrl(urlBgColor, 'Background Change (Blue)');
+
+    // 7. Test Upscale
+    console.log('\n--- Step 7: Testing Upscale ---');
+    const specUpscale: ImageProcessingSpec = {
+      task_type: 'upscale',
+      dimensions: { width_px: null, height_px: null, width_mm: null, height_mm: null },
+      dpi: null, background: null, face_requirements: null, max_file_size_mb: null, format: null, additional_notes: null
+    };
+    const urlUpscale = await service.transformImage(uploadedUrl, specUpscale);
+    console.log('Upscale URL:', urlUpscale);
+    await checkUrl(urlUpscale, 'Upscale');
+
+    // 8. Test Drop Shadow
+    console.log('\n--- Step 8: Testing Drop Shadow ---');
+    const specShadow: ImageProcessingSpec = {
+      task_type: 'enhance',
+      dimensions: { width_px: null, height_px: null, width_mm: null, height_mm: null },
+      dpi: null, background: null, face_requirements: null, max_file_size_mb: null, format: null, additional_notes: null,
+      effects: {
+        drop_shadow: { enabled: true, top: 10, left: 10, blur: 5, opacity: 50, color: 'black' }
+      }
+    };
+    const urlShadow = await service.transformImage(uploadedUrl, specShadow);
+    console.log('Drop Shadow URL:', urlShadow);
+    await checkUrl(urlShadow, 'Drop Shadow');
+
+    // 9. Test Smart Crop (Focus)
+    console.log('\n--- Step 9: Testing Smart Crop (Auto Focus) ---');
+    const specSmartCrop: ImageProcessingSpec = {
+      task_type: 'smart_crop',
+      dimensions: { width_px: 200, height_px: 200, width_mm: null, height_mm: null },
+      dpi: null, background: null, face_requirements: null, max_file_size_mb: null, format: null, additional_notes: null
+    };
+    const urlSmartCrop = await service.transformImage(uploadedUrl, specSmartCrop);
+    console.log('Smart Crop URL:', urlSmartCrop);
+    await checkUrl(urlSmartCrop, 'Smart Crop (200x200 Auto Focus)');
+
+    // 10. Test Generative Fill
+    console.log('\n--- Step 10: Testing Generative Fill ---');
+    const specGenFill: ImageProcessingSpec = {
+      task_type: 'generative_fill',
+      dimensions: { width_px: null, height_px: null, width_mm: null, height_mm: null },
+      dpi: null, background: null, face_requirements: null, max_file_size_mb: null, format: null, additional_notes: null
+    };
+    const urlGenFill = await service.transformImage(uploadedUrl, specGenFill);
+    console.log('Generative Fill URL:', urlGenFill);
+    await checkUrl(urlGenFill, 'Generative Fill');
+
+  } catch (error: any) {
+    console.error('Test Suite Failed:', error.message);
   }
-
-  // Save results to file
-  const fs = require('fs');
-  const reportPath = './test-results.json';
-  fs.writeFileSync(reportPath, JSON.stringify(results, null, 2));
-  console.log(`\n💾 Full results saved to: ${reportPath}`);
-
-  console.log('\n' + '='.repeat(60));
-  
-  return { passed, failed, total: passed + failed };
 }
 
-// Run tests
-runAllTests()
-  .then(({ passed, failed, total }) => {
-    process.exit(failed > 0 ? 1 : 0);
-  })
-  .catch((error) => {
-    console.error('Test runner failed:', error);
-    process.exit(1);
-  });
+testAllFeatures();

@@ -8,7 +8,7 @@ import { auth, currentUser } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { ImageKitService } from '@/lib/imagekit.service';
 import { DatabaseService } from '@/lib/database.service';
-import { RemoveBgService } from '@/lib/removebg.service';
+
 import { ProcessImageResponse, ImageProcessingSpec } from '@/lib/types';
 import {
   AuthenticationError,
@@ -112,44 +112,15 @@ export async function POST(request: NextRequest) {
     let buffer = Buffer.from(arrayBuffer);
 
     // Check if background removal/change is requested
+    // This is now handled directly by ImageKit transformations
     const needsBackgroundProcessing =
       specifications.task_type === 'background_change' ||
       (specifications.background && specifications.background !== 'original');
 
-    // Use Remove.bg if background processing is needed and API is available
     if (needsBackgroundProcessing) {
-      try {
-        const removebgService = new RemoveBgService();
-
-        // Map color names to hex codes
-        const colorMap: Record<string, string> = {
-          white: 'FFFFFF',
-          black: '000000',
-          blue: '0000FF',
-          red: 'FF0000',
-          green: '00FF00',
-          yellow: 'FFFF00',
-          gray: '808080',
-          grey: '808080',
-        };
-
-        const bgColor = specifications.background
-          ? (colorMap[specifications.background.toLowerCase()] || specifications.background.replace('#', ''))
-          : undefined;
-
-        console.log('Using Remove.bg for background processing:', {
-          background: specifications.background,
-          bgColor,
-        });
-
-        // Process with Remove.bg
-        const processedBuffer = await removebgService.removeBackground(buffer, bgColor);
-        buffer = Buffer.from(processedBuffer);
-        console.log('Background processed successfully with Remove.bg');
-      } catch (error) {
-        console.warn('Remove.bg failed, falling back to ImageKit:', error);
-        // Continue with ImageKit - it will show a warning to the user
-      }
+      console.log('Background processing requested, will be handled by ImageKit:', {
+        background: specifications.background,
+      });
     }
 
     // Upload image to ImageKit with sanitized filename

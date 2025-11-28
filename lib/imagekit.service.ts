@@ -92,13 +92,13 @@ export class ImageKitService {
     for (let attempt = 0; attempt < this.MAX_RETRIES; attempt++) {
       try {
         const transformations = this.buildTransformations(specs);
-        
+
         // Build transformation string
         const transformationString = this.buildTransformationString(transformations);
-        
+
         // Log the transformation for debugging
         console.log('ImageKit transformation:', transformationString);
-        
+
         // Generate transformed URL
         const transformedUrl = this.imagekit.url({
           src: imageUrl,
@@ -106,7 +106,7 @@ export class ImageKitService {
         });
 
         console.log('Transformed URL:', transformedUrl);
-        
+
         return transformedUrl;
       } catch (error) {
         lastError = error as Error;
@@ -160,7 +160,7 @@ export class ImageKitService {
         transformations.height = Math.round((specs.dimensions.height_mm / 25.4) * specs.dpi);
         console.log('Converted height from mm:', transformations.height);
       }
-      
+
       // Set DPR for high-resolution output
       transformations.dpr = specs.dpi / 96; // 96 is standard screen DPI
       console.log('Set DPR:', transformations.dpr);
@@ -183,8 +183,14 @@ export class ImageKitService {
 
     // Handle background
     if (specs.background !== null && specs.background !== 'original') {
+      // Check if we need to remove background first
+      // This applies if background is 'transparent' or any color
+      // Use 'e-bgremove' for ImageKit's AI background removal (no hyphen)
+      transformations.raw = "e-bgremove";
+      console.log('Set raw transformation: e-bgremove');
+
       if (specs.background === 'transparent') {
-        // For transparent background, we need to remove the background
+        // For transparent background, we just need bg-remove (already set)
         transformations.background = 'transparent';
         console.log('Set background: transparent');
       } else {
@@ -203,7 +209,7 @@ export class ImageKitService {
           lightgray: 'D3D3D3',
           lightgrey: 'D3D3D3',
         };
-        
+
         const lowerColor = specs.background.toLowerCase();
         transformations.background = colorMap[lowerColor] || specs.background.replace('#', '');
         console.log('Set background color:', transformations.background);
@@ -216,9 +222,9 @@ export class ImageKitService {
       // This is a rough heuristic - smaller target = lower quality
       const targetSizeMB = specs.max_file_size_mb;
       const targetSizeKB = targetSizeMB * 1024;
-      
+
       console.log('Target file size:', targetSizeKB, 'KB');
-      
+
       // For very small file sizes (< 50KB), we need aggressive compression
       if (targetSizeKB < 50) {
         transformations.quality = 30;
@@ -246,7 +252,7 @@ export class ImageKitService {
       } else {
         transformations.quality = 90;
       }
-      
+
       console.log('Set quality for target size:', transformations.quality);
     }
 
@@ -287,6 +293,52 @@ export class ImageKitService {
         transformations.contrast = specs.effects.contrast;
         console.log('Set contrast:', transformations.contrast);
       }
+
+      // Drop Shadow
+      if (specs.effects.drop_shadow && specs.effects.drop_shadow.enabled) {
+        transformations.drop_shadow = specs.effects.drop_shadow;
+        console.log('Set drop shadow:', transformations.drop_shadow);
+      }
+
+      // Retouch
+      if (specs.effects.retouch) {
+        transformations.retouch = true;
+        console.log('Set retouch: true');
+      }
+
+      // Upscale
+      if (specs.effects.upscale || specs.task_type === 'upscale') {
+        transformations.upscale = true;
+        console.log('Set upscale: true');
+      }
+    }
+
+    // Handle Smart Crop (Focus)
+    if (specs.task_type === 'smart_crop') {
+      // Default to auto focus if not specified
+      // We can use 'fo-auto' or 'fo-face'
+      // If face requirements exist, prefer face focus
+      if (specs.face_requirements) {
+        transformations.focus = 'face';
+        console.log('Set focus: face');
+      } else {
+        transformations.focus = 'auto';
+        console.log('Set focus: auto');
+      }
+    }
+
+    // Handle Generative Fill
+    if (specs.task_type === 'generative_fill') {
+      // e-genfill usually requires a prompt or just expands
+      // For now, we'll just enable the flag, and buildTransformationString will handle it
+      transformations.generative_fill = true;
+      console.log('Set generative fill: true');
+    }
+
+    // Handle Generate Variation
+    if (specs.task_type === 'generate_variation') {
+      transformations.generate_variation = true;
+      console.log('Set generate variation: true');
     }
 
     console.log('Final transformations:', transformations);
@@ -301,6 +353,12 @@ export class ImageKitService {
    */
   private buildTransformationString(transformations: TransformationParams): Record<string, string> {
     const result: Record<string, string> = {};
+
+    // Handle raw transformations first (like bg-remove)
+    if (transformations.raw) {
+      result.raw = transformations.raw;
+      console.log('Added raw parameter:', result.raw);
+    }
 
     if (transformations.width) {
       result.w = transformations.width.toString();
@@ -322,7 +380,7 @@ export class ImageKitService {
       result.f = transformations.format;
       console.log('Added f parameter:', result.f);
     }
-    
+
     // Handle background - only works for transparent images or with padding
     if (transformations.background && transformations.background !== 'transparent') {
       result.bg = transformations.background;
@@ -370,6 +428,53 @@ export class ImageKitService {
     if (transformations.contrast !== undefined && transformations.contrast !== 0) {
       result['e-contrast'] = transformations.contrast.toString();
       console.log('Added e-contrast parameter:', result['e-contrast']);
+    }
+
+    // Handle Drop Shadow
+    if (transformations.drop_shadow) {
+      // e-dropshadow
+      // Syntax: e-dropshadow-co-<color>-op-<opacity>-bl-<blur>-dx-<left>-dy-<top>
+      // Simplified: e-dropshadow
+      let ds = 'e-dropshadow';
+      if (transformations.drop_shadow.color) ds += `-co-${transformations.drop_shadow.color.replace('#', '')}`;
+      if (transformations.drop_shadow.opacity) ds += `-op-${transformations.drop_shadow.opacity}`;
+      if (transformations.drop_shadow.blur) ds += `-bl-${transformations.drop_shadow.blur}`;
+      if (transformations.drop_shadow.left) ds += `-dx-${transformations.drop_shadow.left}`;
+      if (transformations.drop_shadow.top) ds += `-dy-${transformations.drop_shadow.top}`;
+
+      result[ds] = ''; // Key-only parameter
+      console.log('Added drop shadow parameter:', ds);
+    }
+
+    // Handle Retouch
+    if (transformations.retouch) {
+      result['e-retouch'] = '';
+      console.log('Added e-retouch parameter');
+    }
+
+    // Handle Upscale
+    if (transformations.upscale) {
+      result['e-upscale'] = '';
+      console.log('Added e-upscale parameter');
+    }
+
+    // Handle Focus (Smart Crop)
+    if (transformations.focus) {
+      result.fo = transformations.focus;
+      console.log('Added fo parameter:', result.fo);
+    }
+
+    // Handle Generative Fill
+    if (transformations.generative_fill) {
+      // e-genfill
+      result['e-genfill'] = '';
+      console.log('Added e-genfill parameter');
+    }
+
+    // Handle Generate Variation
+    if (transformations.generate_variation) {
+      result['e-genvar'] = '';
+      console.log('Added e-genvar parameter');
     }
 
     console.log('Final transformation string:', result);

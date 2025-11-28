@@ -1,10 +1,164 @@
 'use client'
 
-import { useState } from 'react';
-import { PricingTable } from '@clerk/nextjs';
+import { useState, useEffect } from 'react';
+import { useAuth } from '@clerk/nextjs';
+import { useRouter } from 'next/navigation';
+
+declare global {
+  interface Window {
+    Razorpay: any;
+  }
+}
 
 export default function PricingPage() {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
+  const [loading, setLoading] = useState<string | null>(null);
+  const [subscriptionStatus, setSubscriptionStatus] = useState<any>(null);
+  const { userId, isLoaded } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    // Load Razorpay script
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.async = true;
+    document.body.appendChild(script);
+
+    // Fetch subscription status if user is logged in
+    if (isLoaded && userId) {
+      fetchSubscriptionStatus();
+    }
+
+    return () => {
+      document.body.removeChild(script);
+    };
+  }, [isLoaded, userId]);
+
+  const fetchSubscriptionStatus = async () => {
+    try {
+      const response = await fetch('/api/subscription/status');
+      const data = await response.json();
+      if (data.success) {
+        setSubscriptionStatus(data.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch subscription status:', error);
+    }
+  };
+
+  const handleSubscribe = async (planId: string, planName: string, price: number) => {
+    if (!userId) {
+      router.push('/sign-in');
+      return;
+    }
+
+    setLoading(planId);
+
+    try {
+      // Create subscription
+      const createResponse = await fetch('/api/subscription/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ planId }),
+      });
+
+      const createData = await createResponse.json();
+
+      if (!createData.success) {
+        throw new Error(createData.error?.message || 'Failed to create subscription');
+      }
+
+      const { subscriptionId } = createData.data;
+
+      // Initialize Razorpay
+      const options = {
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+        subscription_id: subscriptionId,
+        name: 'Imagely',
+        description: `${planName} Plan Subscription`,
+        image: '/favicon-black.ico',
+        handler: async function (response: any) {
+          try {
+            // Verify payment
+            const verifyResponse = await fetch('/api/subscription/verify', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_subscription_id: response.razorpay_subscription_id,
+                razorpay_signature: response.razorpay_signature,
+                planId,
+              }),
+            });
+
+            const verifyData = await verifyResponse.json();
+
+            if (verifyData.success) {
+              alert('Subscription activated successfully!');
+              router.push('/upload');
+            } else {
+              throw new Error('Payment verification failed');
+            }
+          } catch (error) {
+            console.error('Payment verification error:', error);
+            alert('Payment verification failed. Please contact support.');
+          }
+        },
+        prefill: {
+          email: '',
+          contact: '',
+        },
+        theme: {
+          color: '#4F46E5',
+        },
+      };
+
+      const razorpay = new window.Razorpay(options);
+      razorpay.open();
+    } catch (error) {
+      console.error('Subscription error:', error);
+      alert('Failed to initiate subscription. Please try again.');
+    } finally {
+      setLoading(null);
+    }
+  };
+
+  const plans = [
+    {
+      id: 'basic',
+      name: 'Basic',
+      price: 299,
+      currency: '₹',
+      period: '/month',
+      description: 'Perfect for individuals',
+      features: [
+        '50 image processing requests/month',
+        'All image transformations',
+        'Natural language processing',
+        'Standard support',
+        'Up to 10MB file size',
+      ],
+      popular: false,
+    },
+    {
+      id: 'pro',
+      name: 'Pro',
+      price: 599,
+      currency: '₹',
+      period: '/month',
+      description: 'Best for professionals',
+      features: [
+        'Unlimited image processing',
+        'All image transformations',
+        'Natural language processing',
+        'Priority support',
+        'Unlimited file size',
+        'Batch processing',
+        'API access',
+      ],
+      popular: true,
+    },
+  ];
 
   const faqsData = [
     {
@@ -56,9 +210,102 @@ export default function PricingPage() {
         </div>
       </div>
 
-      {/* Clerk Pricing Table */}
-      <div className="w-full max-w-lg mx-auto px-4 sm:px-6 lg:px-8">
-        <PricingTable />
+      {/* Trial Banner */}
+      {subscriptionStatus?.isTrialActive && (
+        <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 mb-8">
+          <div className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-xl p-6 text-center">
+            <h3 className="text-xl font-semibold mb-2">🎉 Your 3-Day Free Trial is Active!</h3>
+            <p className="text-indigo-100">
+              {subscriptionStatus.trialDaysRemaining} day{subscriptionStatus.trialDaysRemaining !== 1 ? 's' : ''} remaining. 
+              Upgrade now to continue enjoying unlimited access.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Pricing Cards */}
+      <div className="w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mb-16">
+        <div className="grid md:grid-cols-2 gap-8">
+          {plans.map((plan) => (
+            <div
+              key={plan.id}
+              className={`relative bg-white rounded-2xl shadow-lg border-2 transition-all hover:shadow-xl ${
+                plan.popular ? 'border-indigo-600' : 'border-gray-200'
+              }`}
+            >
+              {plan.popular && (
+                <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                  <span className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-4 py-1 rounded-full text-sm font-semibold">
+                    Most Popular
+                  </span>
+                </div>
+              )}
+
+              <div className="p-8">
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">{plan.name}</h3>
+                <p className="text-gray-600 mb-6">{plan.description}</p>
+
+                <div className="mb-6">
+                  <span className="text-5xl font-bold text-gray-900">{plan.currency}{plan.price}</span>
+                  <span className="text-gray-600">{plan.period}</span>
+                </div>
+
+                <button
+                  onClick={() => handleSubscribe(plan.id, plan.name, plan.price)}
+                  disabled={loading === plan.id || (subscriptionStatus?.isPaidSubscriber && subscriptionStatus?.planId === plan.id)}
+                  className={`w-full py-3 px-6 rounded-lg font-semibold transition-all ${
+                    plan.popular
+                      ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:shadow-lg disabled:opacity-50'
+                      : 'bg-gray-100 text-gray-900 hover:bg-gray-200 disabled:opacity-50'
+                  }`}
+                >
+                  {loading === plan.id
+                    ? 'Processing...'
+                    : subscriptionStatus?.isPaidSubscriber && subscriptionStatus?.planId === plan.id
+                    ? 'Current Plan'
+                    : 'Subscribe Now'}
+                </button>
+
+                <ul className="mt-8 space-y-4">
+                  {plan.features.map((feature, index) => (
+                    <li key={index} className="flex items-start">
+                      <svg
+                        className="w-5 h-5 text-indigo-600 mr-3 mt-0.5 shrink-0"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                      <span className="text-gray-700">{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Free Trial Info */}
+        {!userId && (
+          <div className="mt-12 text-center bg-indigo-50 rounded-xl p-8">
+            <h3 className="text-2xl font-bold text-gray-900 mb-3">
+              Start with a 3-Day Free Trial
+            </h3>
+            <p className="text-gray-700 mb-6">
+              Sign up now and get full access to all features for 3 days. No credit card required!
+            </p>
+            <a
+              href="/sign-up"
+              className="inline-block bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-8 py-3 rounded-lg font-semibold hover:shadow-lg transition-all"
+            >
+              Start Free Trial
+            </a>
+          </div>
+        )}
       </div>
 
 

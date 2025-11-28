@@ -17,6 +17,11 @@ export type TaskType =
   | "background_change"
   | "enhance"
   | "format_change"
+  | "upscale"
+  | "smart_crop"
+  | "generative_fill"
+  | "generate_image"
+  | "generate_variation"
   | "custom";
 
 // ============================================================================
@@ -43,6 +48,16 @@ export interface ImageEffects {
     width: number;
     color: string;
   } | null;
+  drop_shadow?: {
+    enabled: boolean;
+    top?: number;
+    left?: number;
+    blur?: number;
+    color?: string;
+    opacity?: number;
+  } | null;
+  retouch?: boolean;
+  upscale?: boolean;
 }
 
 // ============================================================================
