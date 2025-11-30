@@ -4,19 +4,19 @@
  * Requirements: 1.1, 1.2, 1.3, 7.1, 7.2, 8.1, 9.1, 13.1, 13.2, 13.3, 13.4
  */
 
-import { auth } from '@clerk/nextjs/server';
+import { auth, currentUser } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { GeminiService } from '@/lib/gemini.service';
 import { DatabaseService } from '@/lib/database.service';
 import { getCacheInstance } from '@/lib/cache.service';
 import { ParseQueryResponse } from '@/lib/types';
-import { 
-  AuthenticationError, 
-  ValidationError, 
+import {
+  AuthenticationError,
+  ValidationError,
   ExternalServiceError,
   DatabaseError,
   logError,
-  errorToResponse 
+  errorToResponse
 } from '@/lib/errors';
 import { validateNonEmptyString } from '@/lib/validation.utils';
 import { parseQueryLimiter } from '@/lib/rate-limiter';
@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
   try {
     // Authenticate user with Clerk
     const { userId } = await auth();
-    
+
     if (!userId) {
       throw new AuthenticationError();
     }
@@ -51,10 +51,10 @@ export async function POST(request: NextRequest) {
 
     // Validate query field using validation utility
     let validatedQuery = validateNonEmptyString(query, 'query');
-    
+
     // Sanitize input
     validatedQuery = sanitizeString(validatedQuery);
-    
+
     // Check for suspicious patterns
     if (detectSuspiciousPatterns(validatedQuery)) {
       throw new ValidationError(
@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
 
     // Check cache first
     let parsedSpec = cacheService.get(validatedQuery);
-    
+
     if (parsedSpec) {
       // Cache hit - return cached result
       const response: ParseQueryResponse = {
@@ -84,13 +84,13 @@ export async function POST(request: NextRequest) {
     // Cache miss - parse query using Gemini
     try {
       parsedSpec = await geminiService.parseQuery(validatedQuery);
-      
+
       // Store result in cache
       cacheService.set(validatedQuery, parsedSpec);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       logError(error, { userId, endpoint: '/api/parse-query', operation: 'parseQuery' });
-      
+
       throw new ExternalServiceError(
         'Gemini API',
         'Failed to parse query using natural language processing',
@@ -100,12 +100,17 @@ export async function POST(request: NextRequest) {
 
     // Save request to database
     try {
-      // Use userId for email since Clerk v6 auth() doesn't return user object
-      const email = `${userId}@clerk.user`;
-      
+      // Get user details to fetch email
+      const user = await currentUser();
+      const email = user?.emailAddresses[0]?.emailAddress;
+
+      if (!email) {
+        throw new Error('User email not found');
+      }
+
       // Ensure user exists in database
       const dbUserId = await databaseService.ensureUser(userId, email);
-      
+
       // Save the request
       await databaseService.saveRequest(dbUserId, validatedQuery, parsedSpec);
     } catch (error) {
@@ -123,7 +128,7 @@ export async function POST(request: NextRequest) {
     let jsonResponse = NextResponse.json(response, { status: 200 });
     jsonResponse = applyCorsHeaders(jsonResponse, request);
     jsonResponse = addSecurityHeaders(jsonResponse);
-    
+
     return jsonResponse;
 
   } catch (error) {

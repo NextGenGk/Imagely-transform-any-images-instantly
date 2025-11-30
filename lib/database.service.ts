@@ -26,12 +26,29 @@ export class DatabaseService {
 
       // Create user if doesn't exist
       if (!user) {
-        user = await prisma.user.create({
-          data: {
-            clerkId,
-            email,
-          },
-        });
+        try {
+          user = await prisma.user.create({
+            data: {
+              clerkId,
+              email,
+              credits: 10,
+              monthlyCreditLimit: 10,
+              creditsResetAt: new Date(new Date().setMonth(new Date().getMonth() + 1)),
+            },
+          });
+        } catch (createError: any) {
+          // Handle race condition where user was created between findUnique and create
+          if (createError.code === 'P2002') {
+            user = await prisma.user.findUnique({
+              where: { clerkId },
+            });
+            if (!user) {
+              throw createError; // Should not happen if P2002 was real
+            }
+          } else {
+            throw createError;
+          }
+        }
       } else if (user.email !== email) {
         // Update email if it has changed (e.g. fixing placeholder email)
         user = await prisma.user.update({
@@ -300,8 +317,6 @@ export class DatabaseService {
   async updateUserSubscription(
     clerkId: string,
     data: {
-      isTrialActive?: boolean;
-      trialEndsAt?: Date;
       subscriptionStatus?: string;
       razorpayCustomerId?: string;
       razorpaySubscriptionId?: string;
@@ -387,6 +402,35 @@ export class DatabaseService {
       data: {
         currentPeriodStart,
         currentPeriodEnd,
+      },
+    });
+  }
+  /**
+   * Update user credits
+   */
+  async updateUserCredits(userId: string, credits: number, monthlyCreditLimit?: number, creditsResetAt?: Date) {
+    return await prisma.user.update({
+      where: { id: userId },
+      data: {
+        credits,
+        ...(monthlyCreditLimit !== undefined && { monthlyCreditLimit }),
+        ...(creditsResetAt !== undefined && { creditsResetAt }),
+      },
+    });
+  }
+
+  /**
+   * Get plan by slug with features
+   */
+  async getPlanBySlug(slug: string) {
+    return await prisma.plan.findUnique({
+      where: { slug },
+      include: {
+        features: {
+          include: {
+            feature: true,
+          },
+        },
       },
     });
   }

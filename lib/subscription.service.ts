@@ -13,12 +13,14 @@ export interface SubscriptionStatus {
   trialDaysRemaining: number;
   subscriptionStatus: string;
   planId?: string;
+  credits: number;
+  monthlyCreditLimit: number;
 }
 
 export class SubscriptionService {
   private databaseService: DatabaseService;
   private razorpayService: RazorpayService;
-  private TRIAL_DAYS = 3;
+
 
   constructor() {
     this.databaseService = new DatabaseService();
@@ -26,64 +28,131 @@ export class SubscriptionService {
   }
 
   /**
-   * Initialize trial for new user
+   * Initialize new user (no trial)
    */
-  async initializeTrial(clerkId: string, email: string): Promise<void> {
-    const trialEndsAt = new Date();
-    trialEndsAt.setDate(trialEndsAt.getDate() + this.TRIAL_DAYS);
-
-    await this.databaseService.updateUserSubscription(clerkId, {
-      isTrialActive: true,
-      trialEndsAt,
-      subscriptionStatus: 'trial',
-    });
+  async initializeUser(clerkId: string, email: string): Promise<void> {
+    // No trial initialization needed anymore
+    // Just ensure default status is set if needed (schema handles default "inactive")
   }
 
   /**
    * Check if user has access to upload feature
    */
-  async checkAccess(clerkId: string): Promise<SubscriptionStatus> {
+  async checkAccess(clerkId: string): Promise<SubscriptionStatus & { features: Record<string, any> }> {
     const user = await this.databaseService.getUserByClerkId(clerkId);
 
     if (!user) {
       throw new Error('User not found');
     }
 
-    // Check if trial is active
-    const now = new Date();
-    const trialEndsAt = user.trialEndsAt ? new Date(user.trialEndsAt) : null;
-    const isTrialActive = user.isTrialActive && trialEndsAt && trialEndsAt > now;
-
-    // Calculate trial days remaining
-    let trialDaysRemaining = 0;
-    if (isTrialActive && trialEndsAt) {
-      const diffTime = trialEndsAt.getTime() - now.getTime();
-      trialDaysRemaining = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    }
-
     // Check if user has active paid subscription
     const subscription = await this.databaseService.getUserSubscription(user.id);
     const isPaidSubscriber = subscription?.status === 'active';
 
-    // User has access if trial is active OR has paid subscription
-    const hasAccess = isTrialActive || isPaidSubscriber;
+    // User has access if they have credits or paid subscription
+    // For now, we rely on credits for access control in the API
+    const hasAccess = isPaidSubscriber || user.credits > 0;
 
-    // If trial expired and no paid subscription, update status
-    if (!isTrialActive && !isPaidSubscriber && user.subscriptionStatus === 'trial') {
-      await this.databaseService.updateUserSubscription(clerkId, {
-        isTrialActive: false,
-        subscriptionStatus: 'expired',
-      });
-    }
+    // Fetch features based on plan
+    let features: Record<string, any> = {};
+    let planSlug = subscription?.planId;
+
+    // Sync credits (handle reset and initialization)
+    const { credits, monthlyCreditLimit } = await this.syncCredits(user.id, planSlug);
 
     return {
       hasAccess,
-      isTrialActive: isTrialActive || false,
+      isTrialActive: false, // Deprecated
       isPaidSubscriber,
-      trialDaysRemaining,
+      trialDaysRemaining: 0, // Deprecated
       subscriptionStatus: user.subscriptionStatus,
       planId: subscription?.planId,
+      features,
+      credits,
+      monthlyCreditLimit
     };
+  }
+
+  /**
+   * Sync user credits (handle reset and initialization)
+   */
+  async syncCredits(userId: string, planSlug?: string): Promise<{ credits: number; monthlyCreditLimit: number }> {
+    const user = await this.databaseService.getUserById(userId);
+    if (!user) throw new Error('User not found');
+
+    let monthlyCreditLimit = user.monthlyCreditLimit;
+
+    // If planSlug is provided, update limit from plan
+    // If no planSlug provided and user has no limit set (0), default to 'basic'
+    if (!planSlug && monthlyCreditLimit === 0) {
+      planSlug = 'basic';
+    }
+
+    if (planSlug) {
+      const plan = await this.databaseService.getPlanBySlug(planSlug);
+      if (plan) {
+        const features = plan.features.reduce((acc: Record<string, any>, pf: any) => {
+          acc[pf.feature.key] = pf.value;
+          return acc;
+        }, {} as Record<string, any>);
+
+        const limitStr = features['monthly_requests'];
+        if (limitStr === 'unlimited') {
+          monthlyCreditLimit = 999999;
+        } else if (limitStr) {
+          monthlyCreditLimit = parseInt(limitStr, 10) || 0;
+        }
+      }
+    }
+
+    const now = new Date();
+    const creditsResetAt = user.creditsResetAt ? new Date(user.creditsResetAt) : null;
+    let credits = user.credits;
+
+    // Initialize credits if never set or if reset period has passed
+    // Also update if monthlyCreditLimit changed (optional, but good for upgrades)
+    if (!creditsResetAt || (creditsResetAt < now)) {
+      credits = monthlyCreditLimit;
+
+      const nextResetDate = new Date();
+      nextResetDate.setMonth(nextResetDate.getMonth() + 1);
+
+      await this.databaseService.updateUserCredits(userId, credits, monthlyCreditLimit, nextResetDate);
+    } else if (user.monthlyCreditLimit !== monthlyCreditLimit) {
+      // Update limit if it changed (e.g. plan change) without resetting credits immediately
+      // unless we want to enforce new limit immediately. 
+      // For now, just update the stored limit.
+      await this.databaseService.updateUserCredits(userId, credits, monthlyCreditLimit);
+    }
+
+    return { credits, monthlyCreditLimit };
+  }
+
+  /**
+   * Check if user has sufficient credits
+   */
+  async hasCredits(userId: string, amount: number = 1): Promise<boolean> {
+    const user = await this.databaseService.getUserById(userId);
+    if (!user) {
+      console.log('hasCredits: User not found', userId);
+      return false;
+    }
+    console.log(`hasCredits check: User ${userId} has ${user.credits} credits. Required: ${amount}`);
+    return user.credits >= amount;
+  }
+
+  /**
+   * Deduct credits from user
+   */
+  async deductCredit(userId: string, amount: number = 1): Promise<void> {
+    const user = await this.databaseService.getUserById(userId);
+    if (!user) throw new Error('User not found');
+
+    if (user.credits < amount) {
+      throw new Error('Insufficient credits');
+    }
+
+    await this.databaseService.updateUserCredits(user.id, user.credits - amount);
   }
 
   /**
@@ -168,8 +237,32 @@ export class SubscriptionService {
     await this.databaseService.updateUserSubscription(clerkId, {
       subscriptionStatus: 'active',
       razorpaySubscriptionId,
-      isTrialActive: false,
     });
+
+    // Update credits based on the new plan
+    const plan = await this.databaseService.getPlanBySlug(planId);
+    if (plan) {
+      const features = plan.features.reduce((acc: Record<string, any>, pf: any) => {
+        acc[pf.feature.key] = pf.value;
+        return acc;
+      }, {} as Record<string, any>);
+
+      let monthlyCreditLimit = 0;
+      const limitStr = features['monthly_requests'];
+      if (limitStr === 'unlimited') {
+        monthlyCreditLimit = 999999;
+      } else if (limitStr) {
+        monthlyCreditLimit = parseInt(limitStr, 10) || 0;
+      }
+
+      // Reset credits to the new limit
+      await this.databaseService.updateUserCredits(
+        user.id,
+        monthlyCreditLimit,
+        monthlyCreditLimit,
+        currentPeriodEnd // Set reset date to end of current billing period
+      );
+    }
   }
 
   /**

@@ -8,6 +8,7 @@ import { auth, currentUser } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { ImageKitService } from '@/lib/imagekit.service';
 import { DatabaseService } from '@/lib/database.service';
+import { SubscriptionService } from '@/lib/subscription.service';
 
 import { ProcessImageResponse, ImageProcessingSpec } from '@/lib/types';
 import {
@@ -106,6 +107,38 @@ export async function POST(request: NextRequest) {
     // Initialize services
     const imagekitService = new ImageKitService();
     const databaseService = new DatabaseService();
+    const subscriptionService = new SubscriptionService();
+
+    // Ensure user exists and has credits
+    const user = await currentUser();
+    const email = user?.emailAddresses[0]?.emailAddress;
+
+    if (!email) {
+      throw new Error('User email not found');
+    }
+
+    const dbUserId = await databaseService.ensureUser(userId, email);
+
+    // Sync credits to ensure up-to-date (handles resets)
+    await subscriptionService.syncCredits(dbUserId);
+
+    // Check and deduct credits
+    const hasCredits = await subscriptionService.hasCredits(dbUserId);
+    if (!hasCredits) {
+      return NextResponse.json(
+        { success: false, error: 'Insufficient credits. Please upgrade your plan.' },
+        { status: 403 }
+      );
+    }
+
+    try {
+      await subscriptionService.deductCredit(dbUserId);
+    } catch (error) {
+      return NextResponse.json(
+        { success: false, error: 'Failed to deduct credits.' },
+        { status: 500 }
+      );
+    }
 
     // Convert file to buffer
     const arrayBuffer = await imageFile.arrayBuffer();
@@ -151,13 +184,6 @@ export async function POST(request: NextRequest) {
 
     // Update database with processed image URL
     try {
-      // Get user details to fetch email
-      const user = await currentUser();
-      const email = user?.emailAddresses[0]?.emailAddress || `${userId}@clerk.user`;
-
-      // Ensure user exists in database
-      const dbUserId = await databaseService.ensureUser(userId, email);
-
       if (requestId) {
         // If requestId is provided, we could update the existing request
         // For now, we'll create a new request with the processed URL

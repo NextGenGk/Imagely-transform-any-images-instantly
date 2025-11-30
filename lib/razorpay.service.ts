@@ -54,8 +54,29 @@ export class RazorpayService {
       });
 
       return customer;
-    } catch (error) {
+    } catch (error: any) {
+      // Check if customer already exists
+      if (error.error && error.error.code === 'BAD_REQUEST_ERROR' && error.error.description.includes('Customer already exists')) {
+        console.log('Customer already exists in Razorpay, fetching details...');
+        try {
+          const customers = await this.razorpay.customers.all({
+            email: email,
+            count: 1
+          });
+
+          if (customers.items && customers.items.length > 0) {
+            console.log('Found existing customer:', customers.items[0].id);
+            return customers.items[0];
+          }
+        } catch (fetchError) {
+          console.error('Failed to fetch existing customer:', fetchError);
+        }
+      }
+
       console.error('Failed to create Razorpay customer:', error);
+      if (error && typeof error === 'object' && 'error' in error) {
+        console.error('Razorpay Customer Creation Error Details:', JSON.stringify((error as any).error, null, 2));
+      }
       throw new Error('Failed to create customer');
     }
   }
@@ -76,8 +97,13 @@ export class RazorpayService {
       });
 
       return subscription;
+      return subscription;
     } catch (error) {
       console.error('Failed to create subscription:', error);
+      // Log full error details if available
+      if (error && typeof error === 'object' && 'error' in error) {
+        console.error('Razorpay Error Details:', JSON.stringify((error as any).error, null, 2));
+      }
       throw new Error('Failed to create subscription');
     }
   }

@@ -29,7 +29,12 @@ export async function POST(request: NextRequest) {
     }
 
     const subscriptionService = new SubscriptionService();
-    const email = user.emailAddresses[0]?.emailAddress || `${userId}@clerk.user`;
+    const email = user.emailAddresses[0]?.emailAddress;
+
+    if (!email) {
+      throw new AuthenticationError('User email required');
+    }
+
     const name = `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'User';
 
     const result = await subscriptionService.createSubscription(

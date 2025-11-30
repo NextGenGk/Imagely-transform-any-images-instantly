@@ -15,11 +15,12 @@ model User {
   updatedAt              DateTime            @updatedAt
   requests               ProcessingRequest[]
   subscription           Subscription?
-  trialEndsAt            DateTime?
-  isTrialActive          Boolean             @default(true)
-  subscriptionStatus     String              @default("trial") // trial, active, expired, cancelled
+  subscriptionStatus     String              @default("inactive") // active, expired, cancelled, inactive
   razorpayCustomerId     String?
   razorpaySubscriptionId String?
+  credits                Int                 @default(0)
+  monthlyCreditLimit     Int                 @default(0)
+  creditsResetAt         DateTime?
 }
 
 model Subscription {
@@ -27,6 +28,7 @@ model Subscription {
   userId                 String   @unique
   user                   User     @relation(fields: [userId], references: [id])
   planId                 String // basic, pro
+  plan                   Plan     @relation(fields: [planId], references: [slug])
   status                 String // active, cancelled, expired
   razorpaySubscriptionId String   @unique
   razorpayPlanId         String
@@ -37,6 +39,36 @@ model Subscription {
   updatedAt              DateTime @updatedAt
 
   @@index([userId])
+}
+
+model Plan {
+  id             String        @id @default(cuid())
+  name           String
+  slug           String        @unique // basic, pro
+  razorpayPlanId String?       @unique
+  price          Float
+  currency       String
+  features       PlanFeature[]
+  subscriptions  Subscription[]
+}
+
+model Feature {
+  id          String        @id @default(cuid())
+  key         String        @unique // batch_processing, etc.
+  name        String
+  description String?
+  plans       PlanFeature[]
+}
+
+model PlanFeature {
+  id        String  @id @default(cuid())
+  planId    String
+  featureId String
+  value     String? // "50", "unlimited", etc.
+  plan      Plan    @relation(fields: [planId], references: [id])
+  feature   Feature @relation(fields: [featureId], references: [id])
+
+  @@unique([planId, featureId])
 }
 
 model ProcessingRequest {

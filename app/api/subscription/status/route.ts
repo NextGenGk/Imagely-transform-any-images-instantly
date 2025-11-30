@@ -3,7 +3,7 @@
  * Get user's subscription status and access information
  */
 
-import { auth } from '@clerk/nextjs/server';
+import { auth, currentUser } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { SubscriptionService } from '@/lib/subscription.service';
 import { DatabaseService } from '@/lib/database.service';
@@ -20,17 +20,16 @@ export async function GET(request: NextRequest) {
     const subscriptionService = new SubscriptionService();
     const databaseService = new DatabaseService();
 
-    // Ensure user exists and initialize trial if new user
+    // Ensure user exists
     const user = await databaseService.getUserByClerkId(userId);
-    
+
     if (!user) {
-      // New user - initialize trial
-      const email = `${userId}@clerk.user`; // Will be updated with real email later
-      await databaseService.ensureUser(userId, email);
-      await subscriptionService.initializeTrial(userId, email);
-    } else if (!user.trialEndsAt && user.subscriptionStatus === 'trial') {
-      // Existing user without trial end date - initialize trial
-      await subscriptionService.initializeTrial(userId, user.email);
+      const clerkUser = await currentUser();
+      const email = clerkUser?.emailAddresses[0]?.emailAddress;
+
+      if (email) {
+        await databaseService.ensureUser(userId, email);
+      }
     }
 
     const status = await subscriptionService.checkAccess(userId);

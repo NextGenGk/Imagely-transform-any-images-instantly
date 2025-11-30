@@ -58,6 +58,10 @@ export async function POST(request: NextRequest) {
       message: 'Subscription activated successfully',
     });
   } catch (error) {
+    console.error('Payment verification failed:', error);
+    if (error instanceof Error) {
+      console.error('Stack:', error.stack);
+    }
     logError(error, { endpoint: '/api/subscription/verify' });
     const { response, statusCode } = errorToResponse(error);
     return NextResponse.json(response, { status: statusCode });

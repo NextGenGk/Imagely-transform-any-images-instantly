@@ -117,7 +117,7 @@ export default function PricingPage() {
       razorpay.open();
     } catch (error) {
       console.error('Subscription error:', error);
-      alert('Failed to initiate subscription. Please try again.');
+      alert(error instanceof Error ? error.message : 'Failed to initiate subscription. Please try again.');
     } finally {
       setLoading(null);
     }
@@ -210,28 +210,14 @@ export default function PricingPage() {
         </div>
       </div>
 
-      {/* Trial Banner */}
-      {subscriptionStatus?.isTrialActive && (
-        <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 mb-8">
-          <div className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-xl p-6 text-center">
-            <h3 className="text-xl font-semibold mb-2">🎉 Your 3-Day Free Trial is Active!</h3>
-            <p className="text-indigo-100">
-              {subscriptionStatus.trialDaysRemaining} day{subscriptionStatus.trialDaysRemaining !== 1 ? 's' : ''} remaining. 
-              Upgrade now to continue enjoying unlimited access.
-            </p>
-          </div>
-        </div>
-      )}
-
       {/* Pricing Cards */}
       <div className="w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mb-16">
         <div className="grid md:grid-cols-2 gap-8">
           {plans.map((plan) => (
             <div
               key={plan.id}
-              className={`relative bg-white rounded-2xl shadow-lg border-2 transition-all hover:shadow-xl ${
-                plan.popular ? 'border-indigo-600' : 'border-gray-200'
-              }`}
+              className={`relative bg-white rounded-2xl shadow-lg border-2 transition-all hover:shadow-xl ${plan.popular ? 'border-indigo-600' : 'border-gray-200'
+                }`}
             >
               {plan.popular && (
                 <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
@@ -252,18 +238,17 @@ export default function PricingPage() {
 
                 <button
                   onClick={() => handleSubscribe(plan.id, plan.name, plan.price)}
-                  disabled={loading === plan.id || (subscriptionStatus?.isPaidSubscriber && subscriptionStatus?.planId === plan.id)}
-                  className={`w-full py-3 px-6 rounded-lg font-semibold transition-all ${
-                    plan.popular
-                      ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:shadow-lg disabled:opacity-50'
-                      : 'bg-gray-100 text-gray-900 hover:bg-gray-200 disabled:opacity-50'
-                  }`}
+                  disabled={loading === plan.id || (subscriptionStatus?.planId === plan.id) || (!subscriptionStatus?.planId && plan.id === 'basic')}
+                  className={`w-full py-3 px-6 rounded-lg font-semibold transition-all ${plan.popular
+                    ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:shadow-lg disabled:opacity-50'
+                    : 'bg-gray-100 text-gray-900 hover:bg-gray-200 disabled:opacity-50'
+                    }`}
                 >
                   {loading === plan.id
                     ? 'Processing...'
-                    : subscriptionStatus?.isPaidSubscriber && subscriptionStatus?.planId === plan.id
-                    ? 'Current Plan'
-                    : 'Subscribe Now'}
+                    : (subscriptionStatus?.planId === plan.id) || (!subscriptionStatus?.planId && plan.id === 'basic')
+                      ? 'Current Plan'
+                      : 'Subscribe Now'}
                 </button>
 
                 <ul className="mt-8 space-y-4">
@@ -288,26 +273,7 @@ export default function PricingPage() {
             </div>
           ))}
         </div>
-
-        {/* Free Trial Info */}
-        {!userId && (
-          <div className="mt-12 text-center bg-indigo-50 rounded-xl p-8">
-            <h3 className="text-2xl font-bold text-gray-900 mb-3">
-              Start with a 3-Day Free Trial
-            </h3>
-            <p className="text-gray-700 mb-6">
-              Sign up now and get full access to all features for 3 days. No credit card required!
-            </p>
-            <a
-              href="/sign-up"
-              className="inline-block bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-8 py-3 rounded-lg font-semibold hover:shadow-lg transition-all"
-            >
-              Start Free Trial
-            </a>
-          </div>
-        )}
       </div>
-
 
       {/* FAQ Section */}
       <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { UserButton } from "@/components/auth";
 
@@ -11,6 +11,24 @@ export default function Navbar() {
   const [open, setOpen] = useState(false);
   const { isLoaded, isSignedIn } = useAuth();
   const pathname = usePathname();
+  const [credits, setCredits] = useState<number | null>(null);
+  const [limit, setLimit] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (isLoaded && isSignedIn) {
+      console.log('Fetching credits...');
+      fetch('/api/user/credits')
+        .then(res => res.json())
+        .then(data => {
+          console.log('Credits fetched:', data);
+          if (data.credits !== undefined) {
+            setCredits(data.credits);
+            setLimit(data.monthlyCreditLimit);
+          }
+        })
+        .catch(err => console.error('Error fetching credits:', err));
+    }
+  }, [isLoaded, isSignedIn]);
 
   return (
     <>
@@ -45,6 +63,14 @@ export default function Navbar() {
           {isLoaded && isSignedIn ? (
             <>
               <Link href="/upload" className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-full active:scale-95 transition-all">Upload</Link>
+              {credits !== null && (
+                <div className="flex items-center gap-1 bg-gray-100 px-3 py-1.5 rounded-full border border-gray-200">
+                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Credits</span>
+                  <span className="text-sm font-bold text-indigo-600">
+                    {credits}/{limit === 999999 ? '∞' : limit}
+                  </span>
+                </div>
+              )}
               <UserButton />
             </>
           ) : (
@@ -72,23 +98,33 @@ export default function Navbar() {
             </ul>
           )}
 
-          <div className="flex items-center gap-3 mt-6">
+          <div className="flex flex-col gap-3 mt-6">
             {isLoaded && isSignedIn ? (
-              <div className="flex items-center gap-3">
-                <Link href="/upload" className="bg-indigo-600 text-white text-sm hover:bg-indigo-700 active:scale-95 transition-all h-11 rounded-full inline-flex items-center justify-center px-6">
+              <>
+                <div className="flex items-center justify-between w-full">
+                  {credits !== null && (
+                    <div className="flex items-center gap-1 bg-gray-100 px-3 py-1.5 rounded-full border border-gray-200">
+                      <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Credits</span>
+                      <span className="text-sm font-bold text-indigo-600">
+                        {credits}/{limit === 999999 ? '∞' : limit}
+                      </span>
+                    </div>
+                  )}
+                  <UserButton />
+                </div>
+                <Link href="/upload" className="bg-indigo-600 text-white text-sm hover:bg-indigo-700 active:scale-95 transition-all h-11 rounded-full inline-flex items-center justify-center px-6 w-full">
                   Upload
                 </Link>
-                <UserButton />
-              </div>
+              </>
             ) : (
-              <>
-                <Link href="/sign-in" className="bg-white text-gray-700 border border-gray-300 text-sm hover:bg-gray-50 active:scale-95 transition-all h-11 rounded-full inline-flex items-center justify-center px-6">
+              <div className="flex gap-3">
+                <Link href="/sign-in" className="bg-white text-gray-700 border border-gray-300 text-sm hover:bg-gray-50 active:scale-95 transition-all h-11 rounded-full inline-flex items-center justify-center px-6 flex-1">
                   Login
                 </Link>
-                <Link href="/sign-up" className="bg-indigo-600 text-white text-sm hover:bg-indigo-700 active:scale-95 transition-all h-11 rounded-full inline-flex items-center justify-center px-6">
+                <Link href="/sign-up" className="bg-indigo-600 text-white text-sm hover:bg-indigo-700 active:scale-95 transition-all h-11 rounded-full inline-flex items-center justify-center px-6 flex-1">
                   Sign up
                 </Link>
-              </>
+              </div>
             )}
           </div>
         </div>
