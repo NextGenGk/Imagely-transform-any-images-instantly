@@ -87,7 +87,7 @@ export default function QueryInput({ onSubmit, isLoading }: QueryInputProps) {
               Processing...
             </span>
           ) : (
-            'Parse Query'
+            'Submit'
           )}
         </button>
       </form>

@@ -37,6 +37,24 @@ export async function POST(request: NextRequest) {
 
     const name = `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'User';
 
+    // Handle Free Plan (Basic) directly
+    if (planId === 'basic') {
+      // For basic plan, we don't need Razorpay.
+      // We just ensure the user has the basic plan in DB.
+      // We can reuse activateSubscription logic but without Razorpay ID,
+      // OR we can create a specific method.
+      // For simplicity, let's just update the user credits and plan here directly
+      // or call a new method in service.
+
+      // Actually, let's add a method to SubscriptionService for this.
+      await subscriptionService.activateFreeSubscription(userId);
+
+      return NextResponse.json({
+        success: true,
+        data: { planId: 'basic' },
+      });
+    }
+
     const result = await subscriptionService.createSubscription(
       userId,
       email,

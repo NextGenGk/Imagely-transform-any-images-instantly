@@ -190,13 +190,8 @@ export default function ResultDisplay({
             <div>
               <h4 className="text-sm font-semibold text-yellow-900 mb-1">Background Processing Unavailable</h4>
               <p className="text-sm text-yellow-800">
-                Background removal requires a Remove.bg API key. To enable this feature:
+                Background removal failed. Please try again or contact support if the issue persists.
               </p>
-              <ul className="text-sm text-yellow-800 mt-2 ml-4 list-disc space-y-1">
-                <li>Get a free API key from <a href="https://www.remove.bg/api" target="_blank" rel="noopener noreferrer" className="underline">remove.bg</a></li>
-                <li>Add REMOVEBG_API_KEY to your environment variables</li>
-                <li>Restart the application</li>
-              </ul>
             </div>
           </div>
         </div>

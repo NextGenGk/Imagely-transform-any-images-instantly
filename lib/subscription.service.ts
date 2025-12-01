@@ -47,7 +47,7 @@ export class SubscriptionService {
 
     // Check if user has active paid subscription
     const subscription = await this.databaseService.getUserSubscription(user.id);
-    const isPaidSubscriber = subscription?.status === 'active';
+    const isPaidSubscriber = subscription?.status === 'active' && subscription?.planId === 'pro';
 
     // User has access if they have credits or paid subscription
     // For now, we rely on credits for access control in the API
@@ -55,7 +55,8 @@ export class SubscriptionService {
 
     // Fetch features based on plan
     let features: Record<string, any> = {};
-    let planSlug = subscription?.planId;
+    // Fallback to 'basic' if subscription is not active
+    let planSlug = subscription?.status === 'active' ? subscription.planId : 'basic';
 
     // Sync credits (handle reset and initialization)
     const { credits, monthlyCreditLimit } = await this.syncCredits(user.id, planSlug);
@@ -181,11 +182,12 @@ export class SubscriptionService {
       });
     }
 
+    if (planId === 'basic') {
+      throw new Error('Basic plan does not require a Razorpay subscription');
+    }
+
     // Get Razorpay plan ID from environment
-    const razorpayPlanId =
-      planId === 'pro'
-        ? process.env.RAZORPAY_PRO_PLAN_ID!
-        : process.env.RAZORPAY_BASIC_PLAN_ID!;
+    const razorpayPlanId = process.env.RAZORPAY_PRO_PLAN_ID!;
 
     // Create subscription
     const subscription = await this.razorpayService.createSubscription({
@@ -261,6 +263,62 @@ export class SubscriptionService {
         monthlyCreditLimit,
         monthlyCreditLimit,
         currentPeriodEnd // Set reset date to end of current billing period
+      );
+    }
+  }
+
+  /**
+   * Activate free subscription (Basic)
+   */
+  async activateFreeSubscription(userId: string) {
+    const user = await this.databaseService.getUserById(userId);
+    if (!user) throw new Error('User not found');
+
+    const planId = 'basic';
+    const currentPeriodStart = new Date();
+    const currentPeriodEnd = new Date();
+    currentPeriodEnd.setMonth(currentPeriodEnd.getMonth() + 1);
+
+    // Create or update subscription in database
+    // We use a placeholder for razorpay IDs since it's free
+    await this.databaseService.createOrUpdateSubscription({
+      userId: user.id,
+      planId,
+      status: 'active',
+      razorpaySubscriptionId: `free_${user.id}_${Date.now()}`,
+      razorpayPlanId: 'free_plan',
+      currentPeriodStart,
+      currentPeriodEnd,
+    });
+
+    // Update user subscription status
+    await this.databaseService.updateUserSubscription(user.clerkId, {
+      subscriptionStatus: 'active',
+      razorpaySubscriptionId: `free_${user.id}_${Date.now()}`,
+    });
+
+    // Update credits based on the new plan
+    const plan = await this.databaseService.getPlanBySlug(planId);
+    if (plan) {
+      const features = plan.features.reduce((acc: Record<string, any>, pf: any) => {
+        acc[pf.feature.key] = pf.value;
+        return acc;
+      }, {} as Record<string, any>);
+
+      let monthlyCreditLimit = 0;
+      const limitStr = features['monthly_requests'];
+      if (limitStr === 'unlimited') {
+        monthlyCreditLimit = 999999;
+      } else if (limitStr) {
+        monthlyCreditLimit = parseInt(limitStr, 10) || 0;
+      }
+
+      // Reset credits to the new limit
+      await this.databaseService.updateUserCredits(
+        user.id,
+        monthlyCreditLimit,
+        monthlyCreditLimit,
+        currentPeriodEnd
       );
     }
   }

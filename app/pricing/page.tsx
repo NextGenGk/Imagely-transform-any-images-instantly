@@ -68,6 +68,13 @@ export default function PricingPage() {
         throw new Error(createData.error?.message || 'Failed to create subscription');
       }
 
+      // If it's the free plan, we're done!
+      if (planId === 'basic') {
+        alert('Free plan activated successfully!');
+        router.push('/upload');
+        return;
+      }
+
       const { subscriptionId } = createData.data;
 
       // Initialize Razorpay
@@ -126,35 +133,53 @@ export default function PricingPage() {
   const plans = [
     {
       id: 'basic',
-      name: 'Basic',
-      price: 299,
+      name: 'Free',
+      price: 0,
       currency: '₹',
       period: '/month',
       description: 'Perfect for individuals',
       features: [
-        '50 image processing requests/month',
-        'All image transformations',
-        'Natural language processing',
-        'Standard support',
-        'Up to 10MB file size',
+        { text: '10 image processing requests/month', included: true },
+        { text: 'Natural language processing', included: true },
+        { text: 'Resizing', included: true },
+        { text: 'Cropping', included: true },
+        { text: 'Rotating', included: true },
+        { text: 'Flipping', included: true },
+        { text: 'Background removal', included: true },
+        { text: 'Change background', included: true },
+        { text: 'Passport photo', included: true },
+        { text: 'Drop shadow', included: false },
+        { text: 'Retouch', included: false },
+        { text: 'Upscale', included: false },
+        { text: 'Face crop', included: false },
+        { text: 'Smart crop', included: false },
+        { text: 'Standard support via email 3-5 days', included: true },
       ],
       popular: false,
     },
     {
       id: 'pro',
       name: 'Pro',
-      price: 599,
+      price: 199,
       currency: '₹',
       period: '/month',
       description: 'Best for professionals',
       features: [
-        'Unlimited image processing',
-        'All image transformations',
-        'Natural language processing',
-        'Priority support',
-        'Unlimited file size',
-        'Batch processing',
-        'API access',
+        { text: '500 image processing requests/month', included: true },
+        { text: 'Natural language processing', included: true },
+        { text: 'Resizing', included: true },
+        { text: 'Cropping', included: true },
+        { text: 'Rotating', included: true },
+        { text: 'Flipping', included: true },
+        { text: 'Background removal', included: true },
+        { text: 'Change background', included: true },
+        { text: 'Passport photo', included: true },
+        { text: 'Drop shadow', included: true },
+        { text: 'Retouch', included: true },
+        { text: 'Upscale', included: true },
+        { text: 'Face crop', included: true },
+        { text: 'Smart crop', included: true },
+        { text: 'Priority support within 24 hours', included: true },
       ],
       popular: true,
     },
@@ -254,18 +279,34 @@ export default function PricingPage() {
                 <ul className="mt-8 space-y-4">
                   {plan.features.map((feature, index) => (
                     <li key={index} className="flex items-start">
-                      <svg
-                        className="w-5 h-5 text-indigo-600 mr-3 mt-0.5 shrink-0"
-                        fill="currentColor"
-                        viewBox="0 0 20 20"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                      <span className="text-gray-700">{feature}</span>
+                      {feature.included ? (
+                        <svg
+                          className="w-5 h-5 text-indigo-600 mr-3 mt-0.5 shrink-0"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                      ) : (
+                        <svg
+                          className="w-5 h-5 text-gray-400 mr-3 mt-0.5 shrink-0"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                      )}
+                      <span className={`${feature.included ? 'text-gray-700' : 'text-gray-400 line-through'}`}>
+                        {feature.text}
+                      </span>
                     </li>
                   ))}
                 </ul>
