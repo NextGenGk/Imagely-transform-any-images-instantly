@@ -97,11 +97,26 @@ export default function Navbar() {
           )}
         </div>
 
-        <button aria-label="menu-btn" type="button" className="menu-btn inline-block md:hidden active:scale-90 transition" onClick={() => setOpen(v => !v)}>
-          <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 30 30">
-            <path d="M3 7a1 1 0 1 0 0 2h24a1 1 0 1 0 0-2zm0 7a1 1 0 1 0 0 2h24a1 1 0 1 0 0-2zm0 7a1 1 0 1 0 0 2h24a1 1 0 1 0 0-2z" />
-          </svg>
-        </button>
+        <div className="flex md:hidden items-center gap-3">
+          {isLoaded && isSignedIn && (
+            <>
+              {credits !== null && (
+                <div className="flex items-center gap-1 bg-gray-100 px-2 py-1.5 rounded-full border border-gray-200">
+                  <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider hidden sm:inline">Credits</span>
+                  <span className="text-xs font-bold text-indigo-600">
+                    {credits}/{limit === 999999 ? '∞' : limit}
+                  </span>
+                </div>
+              )}
+              <UserButton />
+            </>
+          )}
+          <button aria-label="menu-btn" type="button" className="menu-btn active:scale-90 transition" onClick={() => setOpen(v => !v)}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 30 30">
+              <path d="M3 7a1 1 0 1 0 0 2h24a1 1 0 1 0 0-2zm0 7a1 1 0 1 0 0 2h24a1 1 0 1 0 0-2zm0 7a1 1 0 1 0 0 2h24a1 1 0 1 0 0-2z" />
+            </svg>
+          </button>
+        </div>
 
         <div className={`mobile-menu absolute top-[70px] left-0 w-full bg-white shadow-sm p-6 md:hidden ${open ? "" : "hidden"}`}>
           {pathname !== '/upload' && (
@@ -116,22 +131,9 @@ export default function Navbar() {
 
           <div className="flex flex-col gap-3 mt-6">
             {isLoaded && isSignedIn ? (
-              <>
-                <div className="flex items-center justify-between w-full">
-                  {credits !== null && (
-                    <div className="flex items-center gap-1 bg-gray-100 px-3 py-1.5 rounded-full border border-gray-200">
-                      <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Credits</span>
-                      <span className="text-sm font-bold text-indigo-600">
-                        {credits}/{limit === 999999 ? '∞' : limit}
-                      </span>
-                    </div>
-                  )}
-                  <UserButton />
-                </div>
-                <Link href="/upload" className="bg-indigo-600 text-white text-sm hover:bg-indigo-700 active:scale-95 transition-all h-11 rounded-full inline-flex items-center justify-center px-6 w-full">
-                  Upload
-                </Link>
-              </>
+              <Link href="/upload" className="bg-indigo-600 text-white text-sm hover:bg-indigo-700 active:scale-95 transition-all h-11 rounded-full inline-flex items-center justify-center px-6 w-full">
+                Upload
+              </Link>
             ) : (
               <div className="flex gap-3">
                 <Link href="/sign-in" className="bg-white text-gray-700 border border-gray-300 text-sm hover:bg-gray-50 active:scale-95 transition-all h-11 rounded-full inline-flex items-center justify-center px-6 flex-1">
