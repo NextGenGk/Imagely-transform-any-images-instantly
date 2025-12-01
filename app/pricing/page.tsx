@@ -264,7 +264,7 @@ export default function PricingPage() {
 
                 <button
                   onClick={() => handleSubscribe(plan.id, plan.name, plan.price)}
-                  disabled={loading === plan.id || (subscriptionStatus?.planId === plan.id) || (!subscriptionStatus?.planId && plan.id === 'basic')}
+                  disabled={loading === plan.id || (!!userId && ((subscriptionStatus?.planId === plan.id) || (!subscriptionStatus?.planId && plan.id === 'basic')))}
                   className={`w-full py-3 px-6 rounded-lg font-semibold transition-all ${plan.popular
                     ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:shadow-lg disabled:opacity-50'
                     : 'bg-gray-100 text-gray-900 hover:bg-gray-200 disabled:opacity-50'
@@ -272,7 +272,7 @@ export default function PricingPage() {
                 >
                   {loading === plan.id
                     ? 'Processing...'
-                    : (subscriptionStatus?.planId === plan.id) || (!subscriptionStatus?.planId && plan.id === 'basic')
+                    : (userId && ((subscriptionStatus?.planId === plan.id) || (!subscriptionStatus?.planId && plan.id === 'basic')))
                       ? 'Current Plan'
                       : 'Subscribe Now'}
                 </button>
