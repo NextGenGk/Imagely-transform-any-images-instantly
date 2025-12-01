@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { SubscriptionService } from '../lib/subscription.service';
+import { getPlanBySlug } from '../lib/plans';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -51,15 +52,14 @@ async function main() {
         // Alternative: I will trust my code change and the user's verification.
         // But I should at least verify the plan fetching and credit extraction logic.
 
-        const plan = await prisma.plan.findUnique({ where: { slug: 'pro' }, include: { features: { include: { feature: true } } } });
+
+
+        const plan = getPlanBySlug('pro');
         if (!plan) throw new Error('Pro plan not found');
 
         console.log('Pro plan found:', plan.name);
 
-        const features = plan.features.reduce((acc: Record<string, any>, pf: any) => {
-            acc[pf.feature.key] = pf.value;
-            return acc;
-        }, {} as Record<string, any>);
+        const features = plan.features;
 
         let monthlyCreditLimit = 0;
         const limitStr = features['monthly_requests'];

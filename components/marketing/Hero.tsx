@@ -32,7 +32,7 @@ export default function Hero() {
             </div>
           </div>
           <h1 className="text-center md:text-left text-6xl leading-none md:text-7xl md:leading-none font-bold max-w-xl text-slate-900 mt-4">
-            Transform images with simple words.
+            Transform anything. Instantly.
           </h1>
           <p className="text-center md:text-left text-base text-slate-700 max-w-lg mt-4">
             No complex software needed. Just describe what you want in plain English, and watch our AI instantly transform your images—resize, crop, filter, and more.

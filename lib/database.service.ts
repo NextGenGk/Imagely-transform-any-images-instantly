@@ -317,9 +317,7 @@ export class DatabaseService {
   async updateUserSubscription(
     clerkId: string,
     data: {
-      subscriptionStatus?: string;
       razorpayCustomerId?: string;
-      razorpaySubscriptionId?: string;
     }
   ) {
     return await prisma.user.update({
@@ -419,19 +417,5 @@ export class DatabaseService {
     });
   }
 
-  /**
-   * Get plan by slug with features
-   */
-  async getPlanBySlug(slug: string) {
-    return await prisma.plan.findUnique({
-      where: { slug },
-      include: {
-        features: {
-          include: {
-            feature: true,
-          },
-        },
-      },
-    });
-  }
+
 }

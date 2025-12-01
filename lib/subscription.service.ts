@@ -5,6 +5,7 @@
 
 import { DatabaseService } from './database.service';
 import { RazorpayService } from './razorpay.service';
+import { getPlanBySlug } from './plans';
 
 export interface SubscriptionStatus {
   hasAccess: boolean;
@@ -66,7 +67,7 @@ export class SubscriptionService {
       isTrialActive: false, // Deprecated
       isPaidSubscriber,
       trialDaysRemaining: 0, // Deprecated
-      subscriptionStatus: user.subscriptionStatus,
+      subscriptionStatus: subscription?.status || 'inactive',
       planId: subscription?.planId,
       features,
       credits,
@@ -90,14 +91,9 @@ export class SubscriptionService {
     }
 
     if (planSlug) {
-      const plan = await this.databaseService.getPlanBySlug(planSlug);
+      const plan = getPlanBySlug(planSlug);
       if (plan) {
-        const features = plan.features.reduce((acc: Record<string, any>, pf: any) => {
-          acc[pf.feature.key] = pf.value;
-          return acc;
-        }, {} as Record<string, any>);
-
-        const limitStr = features['monthly_requests'];
+        const limitStr = plan.features['monthly_requests'];
         if (limitStr === 'unlimited') {
           monthlyCreditLimit = 999999;
         } else if (limitStr) {
@@ -119,11 +115,6 @@ export class SubscriptionService {
       nextResetDate.setMonth(nextResetDate.getMonth() + 1);
 
       await this.databaseService.updateUserCredits(userId, credits, monthlyCreditLimit, nextResetDate);
-    } else if (user.monthlyCreditLimit !== monthlyCreditLimit) {
-      // Update limit if it changed (e.g. plan change) without resetting credits immediately
-      // unless we want to enforce new limit immediately. 
-      // For now, just update the stored limit.
-      await this.databaseService.updateUserCredits(userId, credits, monthlyCreditLimit);
     }
 
     return { credits, monthlyCreditLimit };
@@ -235,33 +226,26 @@ export class SubscriptionService {
       currentPeriodEnd,
     });
 
-    // Update user subscription status
-    await this.databaseService.updateUserSubscription(clerkId, {
-      subscriptionStatus: 'active',
-      razorpaySubscriptionId,
-    });
-
     // Update credits based on the new plan
-    const plan = await this.databaseService.getPlanBySlug(planId);
+    const plan = getPlanBySlug(planId);
     if (plan) {
-      const features = plan.features.reduce((acc: Record<string, any>, pf: any) => {
-        acc[pf.feature.key] = pf.value;
-        return acc;
-      }, {} as Record<string, any>);
-
       let monthlyCreditLimit = 0;
-      const limitStr = features['monthly_requests'];
+      const limitStr = plan.features['monthly_requests'];
       if (limitStr === 'unlimited') {
         monthlyCreditLimit = 999999;
       } else if (limitStr) {
         monthlyCreditLimit = parseInt(limitStr, 10) || 0;
       }
 
-      // Reset credits to the new limit
+      // Calculate new credits and limit by adding to existing ones (carry-over)
+      const newCredits = user.credits + monthlyCreditLimit;
+      const newLimit = user.monthlyCreditLimit + monthlyCreditLimit;
+
+      // Update credits with carry-over
       await this.databaseService.updateUserCredits(
         user.id,
-        monthlyCreditLimit,
-        monthlyCreditLimit,
+        newCredits,
+        newLimit,
         currentPeriodEnd // Set reset date to end of current billing period
       );
     }
@@ -291,22 +275,13 @@ export class SubscriptionService {
       currentPeriodEnd,
     });
 
-    // Update user subscription status
-    await this.databaseService.updateUserSubscription(user.clerkId, {
-      subscriptionStatus: 'active',
-      razorpaySubscriptionId: `free_${user.id}_${Date.now()}`,
-    });
+
 
     // Update credits based on the new plan
-    const plan = await this.databaseService.getPlanBySlug(planId);
+    const plan = getPlanBySlug(planId);
     if (plan) {
-      const features = plan.features.reduce((acc: Record<string, any>, pf: any) => {
-        acc[pf.feature.key] = pf.value;
-        return acc;
-      }, {} as Record<string, any>);
-
       let monthlyCreditLimit = 0;
-      const limitStr = features['monthly_requests'];
+      const limitStr = plan.features['monthly_requests'];
       if (limitStr === 'unlimited') {
         monthlyCreditLimit = 999999;
       } else if (limitStr) {
@@ -329,13 +304,13 @@ export class SubscriptionService {
   async cancelSubscription(clerkId: string, cancelAtPeriodEnd: boolean = true) {
     const user = await this.databaseService.getUserByClerkId(clerkId);
 
-    if (!user || !user.razorpaySubscriptionId) {
+    if (!user || !user.subscription?.razorpaySubscriptionId) {
       throw new Error('No active subscription found');
     }
 
     // Cancel in Razorpay
     await this.razorpayService.cancelSubscription(
-      user.razorpaySubscriptionId,
+      user.subscription.razorpaySubscriptionId,
       cancelAtPeriodEnd
     );
 
@@ -349,11 +324,7 @@ export class SubscriptionService {
       );
     }
 
-    if (!cancelAtPeriodEnd) {
-      await this.databaseService.updateUserSubscription(clerkId, {
-        subscriptionStatus: 'cancelled',
-      });
-    }
+
   }
 
   /**
@@ -403,10 +374,6 @@ export class SubscriptionService {
     );
 
     const user = await this.databaseService.getUserById(subscription.userId);
-    if (user) {
-      await this.databaseService.updateUserSubscription(user.clerkId, {
-        subscriptionStatus: 'cancelled',
-      });
-    }
+
   }
 }
