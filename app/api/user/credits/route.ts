@@ -3,6 +3,8 @@ import { NextResponse } from 'next/server';
 import { DatabaseService } from '@/lib/database.service';
 import { SubscriptionService } from '@/lib/subscription.service';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
     try {
         const { userId } = await auth();

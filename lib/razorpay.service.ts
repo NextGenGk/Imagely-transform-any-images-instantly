@@ -62,7 +62,7 @@ export class RazorpayService {
           const customers = await this.razorpay.customers.all({
             email: email,
             count: 1
-          });
+          } as any);
 
           if (customers.items && customers.items.length > 0) {
             console.log('Found existing customer:', customers.items[0].id);

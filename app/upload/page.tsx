@@ -95,6 +95,9 @@ export default function UploadPage() {
       }
 
       setResult({ jsonOutput: parseData.data, originalQuery: query, processedImageUrl: processData.imageUrl });
+
+      // Dispatch event to update credits in Navbar
+      window.dispatchEvent(new Event('credit-update'));
     } catch (err) {
       setError({ message: err instanceof Error ? err.message : 'An error occurred while processing your request' });
     } finally {

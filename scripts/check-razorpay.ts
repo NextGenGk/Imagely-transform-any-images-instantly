@@ -29,7 +29,7 @@ async function main() {
             console.log(`Fetching Basic Plan (${basicPlanId})...`);
             const plan = await razorpayService.getPlan(basicPlanId);
             console.log('Basic Plan found:', plan.item.name);
-        } catch (error) {
+        } catch (error: any) {
             console.error('Failed to fetch Basic Plan:', error.message);
         }
     }
@@ -39,7 +39,7 @@ async function main() {
             console.log(`Fetching Pro Plan (${proPlanId})...`);
             const plan = await razorpayService.getPlan(proPlanId);
             console.log('Pro Plan found:', plan.item.name);
-        } catch (error) {
+        } catch (error: any) {
             console.error('Failed to fetch Pro Plan:', error.message);
         }
     }

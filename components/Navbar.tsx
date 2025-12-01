@@ -14,7 +14,7 @@ export default function Navbar() {
   const [credits, setCredits] = useState<number | null>(null);
   const [limit, setLimit] = useState<number | null>(null);
 
-  useEffect(() => {
+  const fetchCredits = () => {
     if (isLoaded && isSignedIn) {
       console.log('Fetching credits...');
       fetch('/api/user/credits')
@@ -28,6 +28,22 @@ export default function Navbar() {
         })
         .catch(err => console.error('Error fetching credits:', err));
     }
+  };
+
+  useEffect(() => {
+    fetchCredits();
+
+    // Listen for credit updates
+    const handleCreditUpdate = () => {
+      console.log('Credit update event received');
+      fetchCredits();
+    };
+
+    window.addEventListener('credit-update', handleCreditUpdate);
+
+    return () => {
+      window.removeEventListener('credit-update', handleCreditUpdate);
+    };
   }, [isLoaded, isSignedIn]);
 
   return (
