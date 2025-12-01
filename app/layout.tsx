@@ -3,6 +3,7 @@ import { ClerkProvider } from "@clerk/nextjs";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { Toaster } from "react-hot-toast";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -26,6 +27,7 @@ export default function RootLayout({
             <Navbar />
             {children}
             <Footer />
+            <Toaster position="bottom-right" />
           </ErrorBoundary>
         </body>
       </html>

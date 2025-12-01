@@ -84,21 +84,25 @@ export class SubscriptionService {
 
     let monthlyCreditLimit = user.monthlyCreditLimit;
 
-    // If planSlug is provided, update limit from plan
-    // If no planSlug provided and user has no limit set (0), default to 'basic'
-    if (!planSlug && monthlyCreditLimit === 0) {
-      planSlug = 'basic';
-    }
-
+    let planLimit = 0;
     if (planSlug) {
       const plan = getPlanBySlug(planSlug);
       if (plan) {
         const limitStr = plan.features['monthly_requests'];
         if (limitStr === 'unlimited') {
-          monthlyCreditLimit = 999999;
+          planLimit = 999999;
         } else if (limitStr) {
-          monthlyCreditLimit = parseInt(limitStr, 10) || 0;
+          planLimit = parseInt(limitStr, 10) || 0;
         }
+      }
+    }
+
+    // If user has no limit set (0) and no plan, default to basic plan limit
+    if (monthlyCreditLimit === 0 && !planSlug) {
+      const basicPlan = getPlanBySlug('basic');
+      if (basicPlan) {
+        const limitStr = basicPlan.features['monthly_requests'];
+        planLimit = parseInt(limitStr as string, 10) || 10;
       }
     }
 
@@ -107,9 +111,10 @@ export class SubscriptionService {
     let credits = user.credits;
 
     // Initialize credits if never set or if reset period has passed
-    // Also update if monthlyCreditLimit changed (optional, but good for upgrades)
     if (!creditsResetAt || (creditsResetAt < now)) {
-      credits = monthlyCreditLimit;
+      // Reset to PLAN limit, not current limit (which might include carry-over)
+      credits = planLimit > 0 ? planLimit : 10; // Default fallback
+      monthlyCreditLimit = credits;
 
       const nextResetDate = new Date();
       nextResetDate.setMonth(nextResetDate.getMonth() + 1);

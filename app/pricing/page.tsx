@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@clerk/nextjs';
 import { useRouter } from 'next/navigation';
+import { toast } from 'react-hot-toast';
 
 declare global {
   interface Window {
@@ -70,7 +71,7 @@ export default function PricingPage() {
 
       // If it's the free plan, we're done!
       if (planId === 'basic') {
-        alert('Free plan activated successfully!');
+        toast.success('Free plan activated successfully!');
         router.push('/upload');
         return;
       }
@@ -101,14 +102,14 @@ export default function PricingPage() {
             const verifyData = await verifyResponse.json();
 
             if (verifyData.success) {
-              alert('Subscription activated successfully!');
+              toast.success('Subscription activated successfully!');
               router.push('/upload');
             } else {
               throw new Error('Payment verification failed');
             }
           } catch (error) {
             console.error('Payment verification error:', error);
-            alert('Payment verification failed. Please contact support.');
+            toast.error('Payment verification failed. Please contact support.');
           }
         },
         prefill: {
@@ -124,7 +125,7 @@ export default function PricingPage() {
       razorpay.open();
     } catch (error) {
       console.error('Subscription error:', error);
-      alert(error instanceof Error ? error.message : 'Failed to initiate subscription. Please try again.');
+      toast.error(error instanceof Error ? error.message : 'Failed to initiate subscription. Please try again.');
     } finally {
       setLoading(null);
     }
