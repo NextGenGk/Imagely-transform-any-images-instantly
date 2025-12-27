@@ -28,7 +28,7 @@ export const PLANS: Record<string, Plan> = {
         id: 'pro',
         name: 'Pro',
         slug: 'pro',
-        price: 199,
+        price: 99,
         currency: '₹',
         features: {
             monthly_requests: '500',

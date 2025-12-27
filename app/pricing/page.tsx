@@ -161,7 +161,7 @@ export default function PricingPage() {
     {
       id: 'pro',
       name: 'Pro',
-      price: 199,
+      price: 99,
       currency: '₹',
       period: '/month',
       description: 'Best for professionals',
