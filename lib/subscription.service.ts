@@ -188,6 +188,7 @@ export class SubscriptionService {
     // Create subscription
     const subscription = await this.razorpayService.createSubscription({
       planId: razorpayPlanId,
+      customerId: customerId,
       customerEmail: email,
       customerName: name,
     });

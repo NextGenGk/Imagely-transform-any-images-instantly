@@ -55,9 +55,13 @@ export class RazorpayService {
 
       return customer;
     } catch (error: any) {
-      // Check if customer already exists
-      if (error.error && error.error.code === 'BAD_REQUEST_ERROR' && error.error.description.includes('Customer already exists')) {
-        console.log('Customer already exists in Razorpay, fetching details...');
+      // Check if customer already exists (Razorpay returns status 400 with specific message)
+      const isExistingCustomer = error && typeof error === 'object' && 
+        (error.statusCode === 400 || error.error?.code === 'BAD_REQUEST_ERROR') && 
+        (error.error?.description?.includes('already exists') || error.description?.includes('already exists'));
+
+      if (isExistingCustomer) {
+        console.log(`Customer ${email} already exists in Razorpay, fetching details...`);
         try {
           const customers = await this.razorpay.customers.all({
             email: email,
@@ -74,10 +78,15 @@ export class RazorpayService {
       }
 
       console.error('Failed to create Razorpay customer:', error);
+      let errorMessage = 'Failed to create customer';
       if (error && typeof error === 'object' && 'error' in error) {
-        console.error('Razorpay Customer Creation Error Details:', JSON.stringify((error as any).error, null, 2));
+        const details = JSON.stringify((error as any).error);
+        console.error('Razorpay Customer Creation Error Details:', details);
+        errorMessage += `: ${details}`;
+      } else if (error instanceof Error) {
+        errorMessage += `: ${error.message}`;
       }
-      throw new Error('Failed to create customer');
+      throw new Error(errorMessage);
     }
   }
 
@@ -88,15 +97,15 @@ export class RazorpayService {
     try {
       const subscription = await this.razorpay.subscriptions.create({
         plan_id: params.planId,
+        customer_id: params.customerId,
         customer_notify: 1,
         total_count: params.totalCount || 12, // 12 months by default
         quantity: 1,
         notes: {
           customerEmail: params.customerEmail,
         },
-      });
+      } as any);
 
-      return subscription;
       return subscription;
     } catch (error) {
       console.error('Failed to create subscription:', error);

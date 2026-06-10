@@ -19,10 +19,25 @@ export class DatabaseService {
    */
   async ensureUser(clerkId: string, email: string): Promise<string> {
     try {
-      // Try to find existing user
+      // Try to find existing user by clerkId
       let user = await prisma.user.findUnique({
         where: { clerkId },
       });
+
+      if (!user) {
+        // Try to find user by email (e.g., if they deleted and recreated their Clerk account)
+        user = await prisma.user.findUnique({
+          where: { email },
+        });
+
+        if (user) {
+          // Update the existing user's clerkId
+          user = await prisma.user.update({
+            where: { id: user.id },
+            data: { clerkId },
+          });
+        }
+      }
 
       // Create user if doesn't exist
       if (!user) {

@@ -114,6 +114,7 @@ export interface ImageProcessingSpec {
   max_file_size_mb: number | null;
   format: ImageFormat | null;
   effects?: ImageEffects | null;
+  imagekit_parameters?: Record<string, any> | null;
   additional_notes: string | null;
 }
 

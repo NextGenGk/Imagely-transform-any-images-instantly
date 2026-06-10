@@ -111,14 +111,10 @@ PARSING RULES:
    - For very small sizes (< 50KB), aggressive compression is needed
 
 6. BACKGROUND HANDLING:
-   - "white background" → background: "white"
-   - "blue background" → background: "blue"
-   - "green background" → background: "green"
-   - "red background" → background: "red"
-   - "black background" → background: "black"
-   - "change background to X", "X background" → background: X (extract color name)
    - "remove background", "transparent background", "no background" → background: "transparent"
-   - No mention → background: "original" or null
+   - For ANY color request (e.g. "white", "blue", "light rose gradient color", "dark red"): YOU MUST CONVERT THE COLOR TO A 6-CHARACTER HEX CODE (e.g., "FFFFFF", "0000FF", "FFB6C1", "8B0000").
+   - NEVER output color names or descriptions. ONLY output "transparent" or a 6-character hex code (without the #).
+   - No mention → background: null
 
 7. FORMAT EXTRACTION:
    - "JPG", "JPEG", "jpg", "jpeg" → format: "jpg"
@@ -134,10 +130,21 @@ PARSING RULES:
    - "grayscale", "black and white", "monochrome" → effects.grayscale: true
    - "sharpen", "make sharper" → effects.sharpen: 50 (default medium sharpen)
    - "increase contrast", "more contrast" → effects.contrast: 50
-   - "decrease contrast", "less contrast" → effects.contrast: -50
-   - If no effects mentioned → effects: null
+10. IMAGEKIT PARAMETERS & AI TRANSFORMATIONS:
+   - Map requests for specific ImageKit transformations to the imagekit_parameters object.
+   - For Aspect Ratio: "resize to 16:9" -> { "ar": "16-9" }
+   - For Drop Shadow: "add drop shadow" -> { "e-dropshadow": "" }
+   - For Generative Fill: "extend image with generative fill" -> { "bg-genfill": "" } (Optionally with prompt: { "bg-genfill-prompt": "flowers" })
+   - For Change Background with AI: "change background to a snowy scene" -> { "e-changebg-prompt": "a snowy scene" }
+   - For Edit Image with AI: "add some flair to this cake" -> { "e-edit-prompt": "add some flair to this cake" }
+   - For Upscale: "upscale image" -> { "e-upscale": "" }
+   - For Retouch: "retouch image" -> { "e-retouch": "" }
+   - For Face Crop: "crop face" -> { "fo": "face" }
+   - For Smart Crop: "smart crop" -> { "fo": "auto" }
+   - Example: "resize to 16:9 aspect ratio" -> "imagekit_parameters": { "ar": "16-9" }
+   - If no specific ImageKit parameters are needed, set to null.
 
-9. NULL HANDLING:
+11. NULL HANDLING:
    - If a field cannot be determined from the query, set it to null
    - Never omit required fields
 
@@ -151,7 +158,7 @@ JSON SCHEMA (all fields required):
     "height_px": number | null
   },
   "dpi": number | null,
-  "background": string | null (color name like "white", "blue", "green", "red", "black", "transparent", or hex code),
+  "background": string | null ("transparent" or a 6-character hex code like "FFFFFF"),
   "face_requirements": {
     "shoulders_visible": boolean | null,
     "ears_visible": boolean | null,
@@ -168,6 +175,7 @@ JSON SCHEMA (all fields required):
     "sharpen": number | null (1-100),
     "contrast": number | null (-100 to 100)
   } | null,
+  "imagekit_parameters": Record<string, any> | null,
   "additional_notes": string | null
 }
 
@@ -175,19 +183,23 @@ EXAMPLES:
 
 Query: "convert this to a passport photo 300 ppi"
 Response:
-{"task_type":"passport_photo","dimensions":{"width_mm":35,"height_mm":45,"width_px":null,"height_px":null},"dpi":300,"background":"white","face_requirements":{"shoulders_visible":true,"ears_visible":true,"centered_face":true,"no_tilt":true},"max_file_size_mb":null,"format":"jpg","additional_notes":null}
+{"task_type":"passport_photo","dimensions":{"width_mm":35,"height_mm":45,"width_px":null,"height_px":null},"dpi":300,"background":"FFFFFF","face_requirements":{"shoulders_visible":true,"ears_visible":true,"centered_face":true,"no_tilt":true},"max_file_size_mb":null,"format":"jpg","imagekit_parameters":null,"additional_notes":null}
 
 Query: "resize to 1280x720"
 Response:
-{"task_type":"resize","dimensions":{"width_mm":null,"height_mm":null,"width_px":1280,"height_px":720},"dpi":null,"background":null,"face_requirements":null,"max_file_size_mb":null,"format":null,"additional_notes":null}
+{"task_type":"resize","dimensions":{"width_mm":null,"height_mm":null,"width_px":1280,"height_px":720},"dpi":null,"background":null,"face_requirements":null,"max_file_size_mb":null,"format":null,"imagekit_parameters":null,"additional_notes":null}
+
+Query: "resize to 16:9 aspect ratio"
+Response:
+{"task_type":"resize","dimensions":{"width_mm":null,"height_mm":null,"width_px":null,"height_px":null},"dpi":null,"background":null,"face_requirements":null,"max_file_size_mb":null,"format":null,"imagekit_parameters":{"ar":"16-9"},"additional_notes":null}
 
 Query: "US passport photo with blue background"
 Response:
-{"task_type":"passport_photo","dimensions":{"width_mm":51,"height_mm":51,"width_px":null,"height_px":null},"dpi":300,"background":"blue","face_requirements":{"shoulders_visible":true,"ears_visible":true,"centered_face":true,"no_tilt":true},"max_file_size_mb":null,"format":"jpg","additional_notes":null}
+{"task_type":"passport_photo","dimensions":{"width_mm":51,"height_mm":51,"width_px":null,"height_px":null},"dpi":300,"background":"0000FF","face_requirements":{"shoulders_visible":true,"ears_visible":true,"centered_face":true,"no_tilt":true},"max_file_size_mb":null,"format":"jpg","additional_notes":null}
 
 Query: "change background from yellow to green"
 Response:
-{"task_type":"background_change","dimensions":{"width_mm":null,"height_mm":null,"width_px":null,"height_px":null},"dpi":null,"background":"green","face_requirements":null,"max_file_size_mb":null,"format":null,"effects":null,"additional_notes":"Change background from yellow to green."}
+{"task_type":"background_change","dimensions":{"width_mm":null,"height_mm":null,"width_px":null,"height_px":null},"dpi":null,"background":"00FF00","face_requirements":null,"max_file_size_mb":null,"format":null,"effects":null,"additional_notes":"Change background from yellow to green."}
 
 Query: "rotate 90 degrees and make it grayscale"
 Response:
@@ -249,6 +261,7 @@ Now parse the input query and return ONLY the JSON response with no additional t
       'face_requirements',
       'max_file_size_mb',
       'format',
+      'imagekit_parameters',
       'additional_notes'
     ];
 

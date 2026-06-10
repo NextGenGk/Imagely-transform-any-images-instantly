@@ -109,12 +109,12 @@ export default function ImageUpload({ onUpload, acceptedFormats, maxSizeMB }: Im
             <div className={`absolute inset-0 bg-gradient-to-br from-violet-500/5 via-fuchsia-500/5 to-pink-500/5 transition-opacity duration-300 ${isDragging ? 'opacity-100' : 'opacity-0'
               }`} />
 
-            <div className="relative px-6 py-16 sm:px-12 sm:py-20">
-              <div className="flex flex-col items-center text-center space-y-6">
+            <div className="relative px-6 py-8 sm:px-12 sm:py-10">
+              <div className="flex flex-col items-center text-center space-y-4">
                 {/* Icon */}
                 <div className={`relative transition-all duration-300 ${isDragging ? 'scale-110' : 'scale-100'}`}>
-                  <div className="absolute inset-0 bg-fuchsia-500/20 blur-2xl rounded-full" />
-                  <div className="relative bg-gradient-to-br from-violet-500 to-fuchsia-600 p-4 rounded-2xl shadow-lg">
+                  <div className="absolute inset-0 bg-violet-500/20 blur-2xl rounded-full" />
+                  <div className="relative bg-gradient-to-br from-violet-600 to-[#9938CA] p-4 rounded-2xl shadow-lg">
                     <svg
                       className="w-12 h-12 text-white"
                       fill="none"
@@ -145,7 +145,7 @@ export default function ImageUpload({ onUpload, acceptedFormats, maxSizeMB }: Im
                 <div className="pt-2">
                   <label
                     htmlFor="file-upload"
-                    className="group relative inline-flex items-center gap-2 bg-gradient-to-r from-violet-600 via-fuchsia-600 to-pink-600 text-white px-8 py-3 rounded-xl font-medium cursor-pointer transition-all duration-200 hover:shadow-lg hover:shadow-fuchsia-500/50 hover:-translate-y-0.5 active:translate-y-0"
+                    className="group relative inline-flex items-center gap-2 bg-gradient-to-r from-violet-600 to-[#9938CA] text-white px-8 py-3 rounded-xl font-medium cursor-pointer transition-all duration-200 hover:shadow-lg hover:shadow-violet-500/50 hover:-translate-y-0.5 active:translate-y-0"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />

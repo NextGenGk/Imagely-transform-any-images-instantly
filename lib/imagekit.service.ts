@@ -341,6 +341,14 @@ export class ImageKitService {
       console.log('Set generate variation: true');
     }
 
+    // Handle ImageKit specific parameters provided by Gemini
+    if (specs.imagekit_parameters) {
+      for (const [key, value] of Object.entries(specs.imagekit_parameters)) {
+        transformations[key] = value;
+        console.log(`Set direct ImageKit parameter: ${key} = ${value}`);
+      }
+    }
+
     console.log('Final transformations:', transformations);
     return transformations;
   }
@@ -475,6 +483,21 @@ export class ImageKitService {
     if (transformations.generate_variation) {
       result['e-genvar'] = '';
       console.log('Added e-genvar parameter');
+    }
+
+    // Handle any passthrough ImageKit parameters
+    const handledKeys = new Set([
+      'width', 'height', 'dpr', 'quality', 'format', 'background',
+      'rotation', 'flip', 'blur', 'grayscale', 'sharpen', 'contrast',
+      'drop_shadow', 'retouch', 'upscale', 'focus', 'generative_fill',
+      'generate_variation', 'raw'
+    ]);
+
+    for (const [key, value] of Object.entries(transformations)) {
+      if (!handledKeys.has(key)) {
+        result[key] = String(value);
+        console.log(`Added direct ImageKit parameter to string: ${key}=${value}`);
+      }
     }
 
     console.log('Final transformation string:', result);

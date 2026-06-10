@@ -48,105 +48,104 @@ export default function Navbar() {
 
   return (
     <>
-      <div className="text-sm text-white w-full text-center font-medium py-2 bg-gradient-to-r from-violet-500 via-[#9938CA] to-[#E0724A]">
-        <p>
-          Transform images instantly with AI! <span className="underline underline-offset-2">Try it free today!</span>
-        </p>
-      </div>
+      <div className="w-full flex justify-center fixed top-4 z-50 px-4">
+        <nav className="flex items-center justify-between w-full max-w-[1000px] px-2.5 py-2.5 bg-white border border-gray-100 rounded-xl shadow-sm text-sm text-gray-700">
+          <Link href="/" aria-label="Imagely" className="inline-flex items-center gap-2 pl-4">
+            <div className="relative h-10 w-28 overflow-hidden">
+              <Image
+                src="/logo-crop-white.png"
+                alt="Imagely Logo"
+                fill
+                className="object-contain object-left invert"
+                priority
+              />
+            </div>
+          </Link>
 
-      <nav className="sticky top-0 z-50 h-[70px] flex items-center justify-between px-6 md:px-16 lg:px-24 xl:px-32 py-4 bg-white text-gray-900 text-sm transition-all shadow">
-        <Link href="/" aria-label="Imagely" className="inline-flex items-center gap-2">
-          <div className="relative h-10 w-32 overflow-hidden">
-            <Image
-              src="/logo-crop-white.png"
-              alt="Imagely Logo"
-              fill
-              className="object-contain object-center invert"
-              priority
-            />
-          </div>
-        </Link>
-
-        {pathname !== '/upload' && (
-          <ul className="hidden md:flex items-center space-x-8 md:pl-28 font-semibold">
-            <li><Link href="/#home">Home</Link></li>
-            <li><Link href="/#features">Features</Link></li>
-            <li><Link href="/#pricing">Pricing</Link></li>
-          </ul>
-        )}
-
-        <div className="hidden md:flex items-center gap-3 ml-20">
-          {isLoaded && isSignedIn ? (
-            <>
-              <Link href="/upload" className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-full active:scale-95 transition-all">Upload</Link>
-              {credits !== null && (
-                <div className="flex items-center gap-1 bg-gray-100 px-3 py-1.5 rounded-full border border-gray-200">
-                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Credits</span>
-                  <span className="text-sm font-bold text-indigo-600">
-                    {credits}/{limit === 999999 ? '∞' : limit}
-                  </span>
-                </div>
-              )}
-              <UserButton />
-            </>
-          ) : (
-            <>
-              <Link href="/sign-in" className="bg-white hover:bg-gray-50 border border-gray-300 px-6 py-2 rounded-full active:scale-95 transition-all">Login</Link>
-              <Link href="/sign-up" className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-full active:scale-95 transition-all">Sign up</Link>
-            </>
-          )}
-        </div>
-
-        <div className="flex md:hidden items-center gap-3">
-          {isLoaded && isSignedIn && (
-            <>
-              {credits !== null && (
-                <div className="flex items-center gap-1 bg-gray-100 px-2 py-1.5 rounded-full border border-gray-200">
-                  <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider hidden sm:inline">Credits</span>
-                  <span className="text-xs font-bold text-indigo-600">
-                    {credits}/{limit === 999999 ? '∞' : limit}
-                  </span>
-                </div>
-              )}
-              <UserButton />
-            </>
-          )}
-          <button aria-label="menu-btn" type="button" className="menu-btn active:scale-90 transition" onClick={() => setOpen(v => !v)}>
-            <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 30 30">
-              <path d="M3 7a1 1 0 1 0 0 2h24a1 1 0 1 0 0-2zm0 7a1 1 0 1 0 0 2h24a1 1 0 1 0 0-2zm0 7a1 1 0 1 0 0 2h24a1 1 0 1 0 0-2z" />
-            </svg>
-          </button>
-        </div>
-
-        <div className={`mobile-menu absolute top-[70px] left-0 w-full bg-white shadow-sm p-6 md:hidden ${open ? "" : "hidden"}`}>
           {pathname !== '/upload' && (
-            <ul className="flex flex-col space-y-4 text-lg">
-              <li><Link href="/#home" className="text-sm">Home</Link></li>
-              <li><Link href="/#features" className="text-sm">Features</Link></li>
-              <li><Link href="#how-it-works" className="text-sm">How it works</Link></li>
-              <li><Link href="#examples" className="text-sm">Examples</Link></li>
-              <li><Link href="/#pricing" className="text-sm">Pricing</Link></li>
+            <ul className="hidden md:flex items-center space-x-8 font-medium">
+              <li><Link href="/#home" className="hover:text-gray-900 transition-colors">Home</Link></li>
+              <li><Link href="/#features" className="hover:text-gray-900 transition-colors">Features</Link></li>
+              <li><Link href="/#use-cases" className="hover:text-gray-900 transition-colors">Use Cases</Link></li>
+              <li><Link href="/#pricing" className="hover:text-gray-900 transition-colors">Pricing</Link></li>
             </ul>
           )}
 
-          <div className="flex flex-col gap-3 mt-6">
+          <div className="hidden md:flex items-center gap-2 pr-1">
             {isLoaded && isSignedIn ? (
-              <Link href="/upload" className="bg-indigo-600 text-white text-sm hover:bg-indigo-700 active:scale-95 transition-all h-11 rounded-full inline-flex items-center justify-center px-6 w-full">
-                Upload
-              </Link>
+              <>
+                <Link href="/upload" className="bg-gradient-to-r from-violet-600 to-[#9938CA] hover:shadow-md text-white px-5 h-10 flex items-center justify-center rounded-lg transition-all font-medium">Upload</Link>
+                {credits !== null && (
+                  <div className="flex items-center gap-1.5 bg-gray-50 px-4 h-10 rounded-lg border border-gray-200">
+                    <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Credits</span>
+                    <span className="text-sm font-bold text-gray-900">
+                      {credits}/{limit === 999999 ? '∞' : limit}
+                    </span>
+                  </div>
+                )}
+                <div className="ml-2 flex items-center">
+                  <UserButton />
+                </div>
+              </>
             ) : (
-              <div className="flex gap-3">
-                <Link href="/sign-in" className="bg-white text-gray-700 border border-gray-300 text-sm hover:bg-gray-50 active:scale-95 transition-all h-11 rounded-full inline-flex items-center justify-center px-6 flex-1">
-                  Login
-                </Link>
-                <Link href="/sign-up" className="bg-indigo-600 text-white text-sm hover:bg-indigo-700 active:scale-95 transition-all h-11 rounded-full inline-flex items-center justify-center px-6 flex-1">
-                  Sign up
-                </Link>
-              </div>
+              <>
+                <Link href="/sign-in" className="bg-white hover:bg-gray-50 border border-gray-200 text-gray-800 px-5 h-10 flex items-center justify-center rounded-lg transition-all font-medium shadow-sm">Login</Link>
+                <Link href="/sign-up" className="bg-gradient-to-r from-violet-600 to-[#9938CA] hover:shadow-md text-white px-5 h-10 flex items-center justify-center rounded-lg transition-all font-medium">Sign up</Link>
+              </>
             )}
           </div>
+
+          <div className="flex md:hidden items-center gap-3 pr-2">
+            {isLoaded && isSignedIn && (
+              <>
+                {credits !== null && (
+                  <div className="flex items-center gap-1 bg-gray-50 px-3 h-10 rounded-lg border border-gray-200">
+                    <span className="text-xs font-bold text-gray-900">
+                      {credits}/{limit === 999999 ? '∞' : limit}
+                    </span>
+                  </div>
+                )}
+                <UserButton />
+              </>
+            )}
+            <button aria-label="menu-btn" type="button" className="menu-btn active:scale-90 transition p-2 bg-gray-50 rounded-lg" onClick={() => setOpen(v => !v)}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="3" y1="12" x2="21" y2="12"></line>
+                <line x1="3" y1="6" x2="21" y2="6"></line>
+                <line x1="3" y1="18" x2="21" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+        </nav>
+      </div>
+
+      <div className={`mobile-menu fixed top-24 left-4 right-4 bg-white shadow-lg border border-gray-100 rounded-2xl p-6 md:hidden z-40 transition-all ${open ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-4 pointer-events-none"}`}>
+        {pathname !== '/upload' && (
+          <ul className="flex flex-col space-y-4 text-base font-medium">
+            <li><Link href="/#home" onClick={() => setOpen(false)}>Home</Link></li>
+            <li><Link href="/#features" onClick={() => setOpen(false)}>Features</Link></li>
+            <li><Link href="/#use-cases" onClick={() => setOpen(false)}>Use Cases</Link></li>
+            <li><Link href="/#pricing" onClick={() => setOpen(false)}>Pricing</Link></li>
+          </ul>
+        )}
+
+        <div className="flex flex-col gap-3 mt-6 pt-6 border-t border-gray-100">
+          {isLoaded && isSignedIn ? (
+            <Link href="/upload" className="bg-gradient-to-r from-violet-600 to-[#9938CA] text-white font-medium hover:shadow-md transition-all h-11 rounded-lg flex items-center justify-center px-6 w-full" onClick={() => setOpen(false)}>
+              Upload
+            </Link>
+          ) : (
+            <div className="flex flex-col gap-3">
+              <Link href="/sign-in" className="bg-white text-gray-800 border border-gray-200 font-medium hover:bg-gray-50 transition-all h-11 rounded-lg flex items-center justify-center px-6 w-full shadow-sm" onClick={() => setOpen(false)}>
+                Login
+              </Link>
+              <Link href="/sign-up" className="bg-gradient-to-r from-violet-600 to-[#9938CA] text-white font-medium hover:shadow-md transition-all h-11 rounded-lg flex items-center justify-center px-6 w-full" onClick={() => setOpen(false)}>
+                Sign up
+              </Link>
+            </div>
+          )}
         </div>
-      </nav>
+      </div>
     </>
   );
 }
