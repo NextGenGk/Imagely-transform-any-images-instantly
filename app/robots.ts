@@ -7,6 +7,6 @@ export default function robots(): MetadataRoute.Robots {
       allow: '/',
       disallow: ['/upload', '/history', '/api/'],
     },
-    sitemap: 'https://www.imagely.app/sitemap.xml',
+    sitemap: 'https://www.imagely.site/sitemap.xml',
   };
 }

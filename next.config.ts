@@ -10,6 +10,21 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  async redirects() {
+    return [
+      {
+        source: "/:path*",
+        has: [
+          {
+            type: "host",
+            value: "imagelysite.vercel.app",
+          },
+        ],
+        destination: "https://www.imagely.site/:path*",
+        permanent: true,
+      },
+    ];
+  },
   // Enable standalone output for Docker deployments
   output: process.env.DOCKER_BUILD === "true" ? "standalone" : undefined,
 };

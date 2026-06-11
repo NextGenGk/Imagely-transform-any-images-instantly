@@ -12,7 +12,10 @@ import { cn } from "@/lib/utils";
 const geist = Geist({ subsets: ['latin'], variable: '--font-sans' });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://www.imagely.app"),
+  metadataBase: new URL("https://www.imagely.site"),
+  alternates: {
+    canonical: "/",
+  },
   title: {
     default: "Imagely - AI-Powered Image Processing",
     template: "%s | Imagely",
@@ -31,7 +34,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: "https://www.imagely.app",
+    url: "https://www.imagely.site",
     title: "Imagely - AI-Powered Image Processing",
     description: "Convert natural language descriptions into professional image processing tasks instantly.",
     siteName: "Imagely",
