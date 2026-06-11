@@ -1,7 +1,7 @@
 import { MetadataRoute } from 'next';
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = 'https://imagely.app';
+  const baseUrl = 'https://www.imagely.app';
 
   return [
     {
